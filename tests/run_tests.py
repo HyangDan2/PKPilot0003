@@ -176,8 +176,7 @@ def static_tests():
         if t == "link" and d.get("href") and not d["href"].startswith(("http", "data:")):
             refs.append(d["href"].split("?")[0])
     def ref_exists(ref: str) -> bool:
-        if ref.startswith("/assets/hd2-theme."):  # shared site asset, lives above the app
-            return os.path.exists(os.path.join(SITE_ROOT, ref.lstrip("/")))
+        # every asset the page loads ships inside this repository (./assets/…)
         return os.path.exists(os.path.join(ROOT, ref))
 
     missing = [r for r in refs if not ref_exists(r)]
@@ -289,7 +288,7 @@ def static_tests():
           re.search(r"\.header-actions \{[^}]*margin-left: auto;", mark_css) is not None)
 
     # ── the docked Light/Dark toggle ─────────────────────────────────────────
-    # The shared /assets/hd2-theme.js floats one button on the plate preview;
+    # The repo's own ./assets/hd2-theme.js floats one button on the plate preview;
     # the studio hides that copy and docks the same circle in the header.
     print("\n[static] header-docked Light/Dark toggle")
     hdr = re.search(r"<header.*?</header>", html, re.S).group(0)
@@ -305,7 +304,7 @@ def static_tests():
     check("the docked moon is the one the floating button draws",
           "M20.4 14.4A8.6 8.6 0 0 1 9.6 3.6a8.6 8.6 0 1 0 10.8 10.8z" in hdr)
     check("the dock script is loaded after the shared theme",
-          html.index("/assets/hd2-theme.js") < html.index("js/theme-dock.js"))
+          html.index("assets/hd2-theme.js") < html.index("js/theme-dock.js"))
     dock_js = read("js/theme-dock.js")
     check("the dock script goes through the shared theme instead of its own storage",
           "HD2Theme.toggle()" in dock_js and "hd2-theme-change" in dock_js)
@@ -747,21 +746,11 @@ CHROME_UA = ("Mozilla/5.0 (Linux; Android 14; Pixel 8) AppleWebKit/537.36 (KHTML
              "Chrome/124.0.0.0 Mobile Safari/537.36")
 
 
-# The studio shares the site-wide theme assets (/assets/hd2-theme.css|js) with
-# every other HD2Lab route, so those absolute URLs are resolved against the
-# repository root while the app itself is served at "/".
-SITE_ROOT = os.path.dirname(ROOT)
-
-
+# The Light/Dark theme assets ship with the app (./assets/hd2-theme.css|js), so
+# every URL the page loads resolves against this repository's root.
 class QuietHandler(http.server.SimpleHTTPRequestHandler):
     def __init__(self, *a, **kw):
         super().__init__(*a, directory=ROOT, **kw)
-
-    def translate_path(self, path):
-        clean = path.split("?", 1)[0].split("#", 1)[0]
-        if clean.startswith("/assets/hd2-theme."):
-            return os.path.join(SITE_ROOT, clean.lstrip("/"))
-        return super().translate_path(path)
 
     def log_message(self, *a):
         pass

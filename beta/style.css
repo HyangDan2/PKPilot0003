@@ -217,7 +217,7 @@ a { color: inherit; text-decoration: none; }
 
 /* the header copy of the Light/Dark toggle — the same circle the landing floats,
    docked between 저장 and ⋮ so it never sits on the plate. Only the studio shows
-   it: the landing keeps the floating one (/assets/hd2-theme.js). */
+   it: the landing keeps the floating one (../assets/hd2-theme.js). */
 .hbtn-theme {
   display: none;
   align-items: center;
@@ -2294,7 +2294,7 @@ input[type="range"]::-moz-range-thumb {
 [data-theme="dark"] .btn-accent:hover:not(:disabled) { color: #0B1020; }
 
 /* ── floating Light/Dark toggle ──────────────────────────────────────────────
-   /assets/hd2-theme.js hands every HD2Lab route this floating button. Here only
+   ../assets/hd2-theme.js hands every HD2Lab route this floating button. Here only
    the landing wears it, bottom-right above the launch cards; the studio turns it
    off and carries the same circle in the header instead (.hbtn-theme). */
 .hd2-theme-toggle {

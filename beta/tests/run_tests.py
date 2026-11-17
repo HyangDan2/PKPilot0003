@@ -268,7 +268,7 @@ def static_tests():
     check("static: the manifest starts at its own scope", manifest["start_url"] == "./")
 
     # ── the docked Light/Dark toggle (the same shape as production) ─────────
-    # The shared /assets/hd2-theme.js floats one button on the plate; the studio
+    # The repo's own ./assets/hd2-theme.js floats one button on the plate; the studio
     # hides that copy and docks the same circle in the header instead.
     print("\n[static] header-docked Light/Dark toggle")
     hdr = re.search(r"<header.*?</header>", html, re.S).group(0)

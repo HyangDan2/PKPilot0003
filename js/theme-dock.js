@@ -1,7 +1,7 @@
 /* ==========================================================================
    HD2Lab · Shutterplate — header-docked Light/Dark toggle
    --------------------------------------------------------------------------
-   /assets/hd2-theme.js put one floating button on every HD2Lab route. On this
+   assets/hd2-theme.js put one floating button on every HD2Lab route. On this
    app that button lands on the plate preview, so the studio hides the floating
    copy (style.css) and carries the same circle, with the same single-colour
    moon/sun, in the header instead (between 저장 and ⋮).
