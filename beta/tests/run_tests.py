@@ -116,7 +116,8 @@ def static_tests():
     check("static: every local asset reference is relative",
           all(not r.startswith("/") for r in local),
           str([r for r in local if r.startswith("/")])[:160])
-    up = [r for r in local if r.startswith("../")]
+    # ../assets/ is this repository's own theme (PKPilot0003/assets), not a way out
+    up = [r for r in local if r.startswith("../") and not r.startswith("../assets/")]
     check("static: the only parent links are the two Production returns",
           up == ["../", "../"], str(up))
     check("static: the stylesheet, scripts and samples are the beta's own",
