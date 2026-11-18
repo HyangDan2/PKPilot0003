@@ -215,39 +215,6 @@ a { color: inherit; text-decoration: none; }
 .hbtn--accent:hover:not(:disabled) { background: rgba(139, 108, 232, 0.24); border-color: var(--accent); }
 .hbtn .ic { width: 16px; height: 16px; }
 
-/* the header copy of the Light/Dark toggle — the same circle the landing floats,
-   docked between 저장 and ⋮ so it never sits on the plate. Only the studio shows
-   it: the landing keeps the floating one (../assets/hd2-theme.js). */
-.hbtn-theme {
-  display: none;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  flex: none;
-  margin: 0;
-  padding: 0;
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  background: var(--ink-2);
-  color: var(--text);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-  transition: border-color 0.16s ease, color 0.16s ease, background 0.16s ease;
-}
-body[data-view="editor"] .hbtn-theme { display: inline-flex; }
-.hbtn-theme:hover { border-color: var(--accent-dim); color: var(--accent); }
-.hbtn-theme:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
-.hbtn-theme .ic-theme {
-  width: 17px;
-  height: 17px;
-  stroke-width: 1.7;
-}
-/* the icon shows where the button takes you — the same rule the floating copy uses */
-.hbtn-theme .ic-theme--sun { display: none; }
-[data-theme="dark"] .hbtn-theme .ic-theme--sun { display: block; }
-[data-theme="dark"] .hbtn-theme .ic-theme--moon { display: none; }
-
 /* 포털 드롭다운 */
 /* an open menu has to paint over the fixed inspector */
 body.is-menu-open .app-header { z-index: 65; }
@@ -2294,9 +2261,12 @@ input[type="range"]::-moz-range-thumb {
 [data-theme="dark"] .btn-accent:hover:not(:disabled) { color: #0B1020; }
 
 /* ── floating Light/Dark toggle ──────────────────────────────────────────────
-   ../assets/hd2-theme.js hands every HD2Lab route this floating button. Here only
-   the landing wears it, bottom-right above the launch cards; the studio turns it
-   off and carries the same circle in the header instead (.hbtn-theme). */
+   ../assets/hd2-theme.js hands every HD2Lab route this one floating button, and
+   it is the app's only Light/Dark control: the landing and the studio both wear
+   it. In the studio the bottom corners are taken (the fixed inspector and its
+   export dock on a PC, the frame library and the 4-button toolbar on a phone),
+   so the button floats just above the frame library, clear of the inspector's
+   column, and rides above the plate instead of the controls. */
 .hd2-theme-toggle {
   --hd2-toggle-bg: var(--ink-2);
   --hd2-toggle-fg: var(--text-hi);
@@ -2317,20 +2287,34 @@ html:has(.export-modal.is-open) .hd2-theme-toggle,
 html:has(.preview-overlay.is-open) .hd2-theme-toggle,
 html:has(.fyra-modal.is-open) .hd2-theme-toggle,
 html:has(.sheet-backdrop.is-open) .hd2-theme-toggle { opacity: 0; pointer-events: none; }
-/* the studio docks the toggle in the header — the floating one would sit on the
-   plate, so it is taken out of sight and out of the tab order */
-body[data-view="editor"] .hd2-theme-toggle {
-  opacity: 0;
-  pointer-events: none;
-  visibility: hidden;
-}
 @media (max-width: 520px) {
   .hd2-theme-toggle { --hd2-toggle-right: 12px; --hd2-toggle-bottom: 18px; }
-  /* …and the phone needs the room: 44px keeps the touch target the rest of the
-     header keeps, and 샘플 steps out (it is on the landing card and in ⋮) */
-  .hbtn-theme { width: 44px; height: 44px; }
-  .hbtn-theme .ic-theme { width: 19px; height: 19px; }
+  /* …and the phone needs the room: 샘플 steps out of the header (it is on the
+     landing card and in ⋮) */
   body[data-view="editor"] #headerSampleBtn { display: none; }
+}
+/* the studio: clear the frame library and (on a phone) the bottom toolbar so the
+   toggle floats over the plate's empty lower corner instead of a control */
+body[data-view="editor"] .hd2-theme-toggle {
+  --hd2-toggle-right: 12px;
+  --hd2-toggle-bottom: 285px;
+}
+/* …and on a PC stay left of the fixed inspector, above the session row */
+@media (min-width: 1024px) {
+  body[data-view="editor"] .hd2-theme-toggle {
+    --hd2-toggle-right: calc(var(--ins-w) + 12px);
+    --hd2-toggle-bottom: 250px;
+  }
+}
+/* the two multi-cut plates float their 4-cell control on the same corner, so the
+   toggle steps up over it instead of stacking on top of it */
+body[data-view="editor"]:has(#slotToggle:not([hidden])) .hd2-theme-toggle {
+  --hd2-toggle-bottom: 340px;
+}
+@media (min-width: 1024px) {
+  body[data-view="editor"]:has(#slotToggle:not([hidden])) .hd2-theme-toggle {
+    --hd2-toggle-bottom: 300px;
+  }
 }
 /* the header now carries a fourth control on a phone, so the product name steps
    out a little earlier than the 360px floor it used to leave at */

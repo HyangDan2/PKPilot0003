@@ -268,30 +268,30 @@ def static_tests():
     check("static: the manifest names the beta", "BETA" in manifest["name"])
     check("static: the manifest starts at its own scope", manifest["start_url"] == "./")
 
-    # ── the docked Light/Dark toggle (the same shape as production) ─────────
-    # The repo's own ./assets/hd2-theme.js floats one button on the plate; the studio
-    # hides that copy and docks the same circle in the header instead.
-    print("\n[static] header-docked Light/Dark toggle")
+    # ── the floating Light/Dark toggle (the same shape as production) ───────
+    # ../assets/hd2-theme.js floats one button on every HD2Lab route and the beta
+    # makes it the only Light/Dark control, on the landing and in the studio.
+    print("\n[static] floating Light/Dark toggle")
     hdr = re.search(r"<header.*?</header>", html, re.S).group(0)
-    check("static: the header carries the docked theme button", 'id="headerThemeBtn"' in hdr)
-    check("static: the docked toggle sits between 저장 and ⋮",
-          hdr.index('id="headerDownloadBtn"') < hdr.index('id="headerThemeBtn"')
-          < hdr.index('id="portalMenu"'))
-    check("static: the docked toggle draws the floating button's moon and sun",
-          "M20.4 14.4A8.6 8.6 0 0 1 9.6 3.6a8.6 8.6 0 1 0 10.8 10.8z" in hdr
-          and "ic-theme--sun" in hdr)
-    check("static: the dock script ships with the beta",
-          os.path.isfile(os.path.join(BETA, "js", "theme-dock.js")))
-    check("static: the dock script reaches the shared theme",
-          "HD2Theme.toggle()" in read("js/theme-dock.js"))
-    check("static: the beta docks the toggle only in the studio",
-          'body[data-view="editor"] .hbtn-theme { display: inline-flex; }' in css)
-    check("static: the studio takes the floating toggle out of sight",
-          re.search(r'body\[data-view="editor"\] \.hd2-theme-toggle \{[^}]*opacity: 0;'
-                    r"[^}]*pointer-events: none;[^}]*visibility: hidden;", css, re.S) is not None)
-    check("static: the beta keeps the 44px phone floor for the docked toggle",
-          ".hbtn-theme { width: 44px; height: 44px; }" in css)
-    check("static: the phone header hands 샘플's slot to the docked toggle",
+    check("static: the header carries no second theme button",
+          "headerThemeBtn" not in hdr and "hbtn-theme" not in html)
+    check("static: no docked-theme script ships with the beta",
+          not os.path.isfile(os.path.join(BETA, "js", "theme-dock.js"))
+          and "theme-dock" not in html)
+    editor_rule = re.search(r'body\[data-view="editor"\] \.hd2-theme-toggle \{[^}]*\}', css, re.S)
+    check("static: the beta keeps the floating toggle in the studio",
+          editor_rule is not None and "visibility: hidden" not in editor_rule.group(0)
+          and "opacity: 0" not in editor_rule.group(0))
+    check("static: the studio clears the frame library on a phone",
+          editor_rule is not None and "--hd2-toggle-bottom: 285px" in editor_rule.group(0))
+    check("static: the studio keeps the toggle left of the fixed inspector on a PC",
+          re.search(r"@media \(min-width: 1024px\) \{\s*body\[data-view=\"editor\"\] "
+                    r"\.hd2-theme-toggle \{[^}]*--hd2-toggle-right: calc\(var\(--ins-w\) \+ 12px\)",
+                    css, re.S) is not None)
+    check("static: the toggle steps above the 4-cell control on the multi-cut plates",
+          re.search(r'body\[data-view="editor"\]:has\(#slotToggle:not\(\[hidden\]\)\) '
+                    r"\.hd2-theme-toggle \{[^}]*--hd2-toggle-bottom: 340px;", css, re.S) is not None)
+    check("static: the phone header keeps 샘플 out of the studio's way",
           'body[data-view="editor"] #headerSampleBtn { display: none; }' in css)
 
     # production is a different build and must stay that way
@@ -1157,36 +1157,41 @@ def browser_tests(port):
         check("browser: the actions no longer crowd the BETA badge",
               mh["brandGap"] > 10, f'gap {mh["brandGap"]}px')
         mdock = mpage.evaluate("""() => {
-            const th = document.querySelector('#headerThemeBtn');
             const f = document.querySelector('#hd2ThemeToggle');
-            const b = th.getBoundingClientRect();
-            const save = document.querySelector('#headerDownloadBtn').getBoundingClientRect();
+            const b = f.getBoundingClientRect();
+            const ov = (a, c) => Math.max(0, Math.min(a.right, c.right) - Math.max(a.left, c.left)) *
+                                Math.max(0, Math.min(a.bottom, c.bottom) - Math.max(a.top, c.top));
+            const others = ['.strip', '.toolbar', '#sessionCard', '.app-header']
+              .map(s => document.querySelector(s)).filter(Boolean);
             const dots = document.querySelector('#portalMenuBtn').getBoundingClientRect();
-            return {shown: getComputedStyle(th).display, w: b.width, h: b.height,
-                    between: b.left >= save.right - 0.5 && b.right <= dots.left + 0.5,
+            return {shown: getComputedStyle(f).visibility, opacity: getComputedStyle(f).opacity,
+                    w: b.width, h: b.height,
                     dotsRight: dots.right, vw: window.innerWidth,
-                    float: getComputedStyle(f).visibility,
+                    overlap: others.reduce((sum, el) => sum + ov(b, el.getBoundingClientRect()), 0),
+                    copies: document.querySelectorAll('#headerThemeBtn').length,
                     sample: getComputedStyle(document.querySelector('#headerSampleBtn')).display};
         }""")
-        check("browser: the beta docks the toggle in the header at 44px",
-              mdock["shown"] in ("flex", "inline-flex") and mdock["w"] >= 44 and mdock["between"],
+        check("browser: the beta wears the floating toggle in the studio at 44px",
+              mdock["shown"] == "visible" and mdock["opacity"] == "1" and mdock["w"] >= 44,
               str(mdock))
+        check("browser: the beta carries no header copy of the toggle",
+              mdock["copies"] == 0, str(mdock["copies"]))
+        check("browser: the toggle stays off the frame library, toolbar and session row",
+              mdock["overlap"] == 0, str(mdock["overlap"]))
         check("browser: the beta phone header keeps its ⋮ inside the screen",
               mdock["dotsRight"] <= mdock["vw"] - 4, str(mdock))
-        check("browser: the beta hides the floating toggle in the studio",
-              mdock["float"] == "hidden", str(mdock))
         check("browser: the beta's 샘플 steps out of the phone header",
               mdock["sample"] == "none", str(mdock))
-        mpage.tap("#headerThemeBtn")
+        mpage.tap("#hd2ThemeToggle")
         mpage.wait_for_timeout(260)
-        check("browser: the beta header toggle flips the theme",
+        check("browser: the beta floating toggle flips the theme",
               mpage.evaluate("""() => document.documentElement.getAttribute('data-theme') === 'dark'
                   && (() => { try { return localStorage.getItem('hd2-theme'); } catch (e) { return null; } })() === 'dark'"""))
         check("browser: dark swaps the beta's moon for the sun",
-              mpage.evaluate("""() => { const th = document.querySelector('#headerThemeBtn');
-                  return getComputedStyle(th.querySelector('.ic-theme--moon')).display === 'none'
-                    && getComputedStyle(th.querySelector('.ic-theme--sun')).display !== 'none'; }"""))
-        mpage.tap("#headerThemeBtn")
+              mpage.evaluate("""() => { const th = document.querySelector('#hd2ThemeToggle');
+                  return getComputedStyle(th.querySelector('.hd2-theme-ic[data-icon="moon"]')).display === 'none'
+                    && getComputedStyle(th.querySelector('.hd2-theme-ic[data-icon="sun"]')).display !== 'none'; }"""))
+        mpage.tap("#hd2ThemeToggle")
         mpage.wait_for_timeout(200)
         check("browser: the beta comes back to light with the same tap",
               mpage.evaluate("() => document.documentElement.getAttribute('data-theme') === 'light'"))
