@@ -1362,6 +1362,20 @@ input[type="range"]::-moz-range-thumb {
   .plate-tools { margin-left: auto; }
 }
 
+/* the filename row is one line: on a narrow studio column the two summary chips
+   give the name its room back (both values live in the library head and the
+   export pane anyway) */
+@media (max-width: 1180px) {
+  #styleChip, #renderChip { display: none; }
+}
+/* …and the byte count / tag chip step out once the row has to hold labeled
+   actions beside the name */
+@media (max-width: 640px) {
+  .session-facts .sep,
+  .session-facts #metaBytes,
+  .session-facts #metaExifChip { display: none; }
+}
+
 @media (max-width: 520px) {
   :root { --card-w: 116px; --thumb-h: 70px; }
   .toast { font-size: 11.5px; padding: 10px 13px; }
@@ -1420,6 +1434,8 @@ input[type="range"]::-moz-range-thumb {
 
 @media (max-width: 359px) {
   .plate-tools .seg--mini { display: none; }
+  /* 4px of padding buys the filename its last few characters */
+  .session { padding: 0 8px; gap: 6px; }
   .app-header { padding: 0 8px; gap: 6px; }
   .header-actions { gap: 4px; }
   .brand { gap: 8px; }
