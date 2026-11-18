@@ -282,15 +282,20 @@ def static_tests():
     check("static: the beta keeps the floating toggle in the studio",
           editor_rule is not None and "visibility: hidden" not in editor_rule.group(0)
           and "opacity: 0" not in editor_rule.group(0))
-    check("static: the studio clears the frame library on a phone",
-          editor_rule is not None and "--hd2-toggle-bottom: 285px" in editor_rule.group(0))
+    check("static: the studio docks the toggle onto the bottom control panel",
+          editor_rule is not None and "--hd2-toggle-bottom:" in editor_rule.group(0))
+    beta_js = open(os.path.join(BETA, "app.js"), encoding="utf-8").read()
+    check("static: the dock offset is measured from that panel",
+          "function syncThemeToggle" in beta_js
+          and "setProperty('--hd2-toggle-bottom'" in beta_js
+          and "[el.sessionCard, el.stripSection, el.wsStrip, el.toolbarEl]" in beta_js)
     check("static: the studio keeps the toggle left of the fixed inspector on a PC",
           re.search(r"@media \(min-width: 1024px\) \{\s*body\[data-view=\"editor\"\] "
                     r"\.hd2-theme-toggle \{[^}]*--hd2-toggle-right: calc\(var\(--ins-w\) \+ 12px\)",
                     css, re.S) is not None)
-    check("static: the toggle steps above the 4-cell control on the multi-cut plates",
+    check("static: the toggle steps aside from the 4-cell control on the multi-cut plates",
           re.search(r'body\[data-view="editor"\]:has\(#slotToggle:not\(\[hidden\]\)\) '
-                    r"\.hd2-theme-toggle \{[^}]*--hd2-toggle-bottom: 340px;", css, re.S) is not None)
+                    r"\.hd2-theme-toggle \{[^}]*--hd2-toggle-right: 66px;", css, re.S) is not None)
     check("static: the phone header keeps 샘플 out of the studio's way",
           'body[data-view="editor"] #headerSampleBtn { display: none; }' in css)
 
@@ -298,11 +303,14 @@ def static_tests():
     prod_html = open(os.path.join(os.path.dirname(BETA), "index.html"), encoding="utf-8").read()
     prod_plate = open(os.path.join(os.path.dirname(BETA), "js", "plate.js"), encoding="utf-8").read()
     prod_order = re.search(r"var ORDER = \[(.*?)\];", prod_plate, re.S).group(1)
-    check("static: production still lists its eight frames",
-          len(re.findall(r"'([a-z0-9]+)'", prod_order)) == 8, prod_order.strip()[:120])
-    check("static: production knows nothing of FYRA 04",
-          "fyra04" not in prod_plate and "fyra04" not in prod_html)
-    check("static: production still says 8 SIGNATURE FRAMES", "8 SIGNATURE FRAMES" in prod_html)
+    # production promoted the beta's 13 signatures on 2026-11-15, so the two
+    # builds now share the library; beta differs in its badge and accent only.
+    check("static: production lists the same thirteen frames",
+          len(re.findall(r"'([a-z0-9]+)'", prod_order)) == 13, prod_order.strip()[:120])
+    check("static: production carries the two multi-cut plates too",
+          "fyra04" in prod_plate and "contact" in prod_plate)
+    check("static: production counts thirteen signature frames",
+          "13 SIGNATURE FRAMES" in prod_html)
 
 
 # ══ browser ═════════════════════════════════════════════════════════════════
@@ -1332,7 +1340,8 @@ def browser_tests(port):
         prod = page.request.get(f"http://127.0.0.1:{port}/PKPilot0003/")
         body = prod.text() if prod.ok else ""
         check("browser: production still answers 200", prod.ok, str(prod.status))
-        check("browser: production still shows eight frames", "8 SIGNATURE FRAMES" in body)
+        check("browser: production shows the same thirteen frames",
+              "13 SIGNATURE FRAMES" in body)
         check("browser: production has no beta badge", "beta-badge" not in body)
         ctx.close()
     finally:

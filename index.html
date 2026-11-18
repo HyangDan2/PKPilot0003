@@ -52,7 +52,7 @@
   <script>try{var h=localStorage.getItem('hd2-theme');document.documentElement.setAttribute('data-theme',h==='dark'?'dark':'light');}catch(e){document.documentElement.setAttribute('data-theme','light');}</script>
   <link rel="stylesheet" href="./assets/hd2-theme.css?v=20261117-navy" />
   <script src="./assets/hd2-theme.js?v=20261117-navy" defer></script>
-  <link rel="stylesheet" href="style.css?v=20261117-dark" />
+  <link rel="stylesheet" href="style.css?v=20261119-viewport" />
 </head>
 <body>
   <!-- ── 자체 제작 SVG 아이콘 스프라이트 ─────────────────────────────── -->
@@ -283,23 +283,6 @@
 
     <!-- ── 프리뷰 스테이지 ─────────────────────────────────────────── -->
     <section class="stage" id="stage" aria-label="플레이트 프리뷰" tabindex="-1">
-      <div class="stage-bar">
-        <span class="chip" id="photoChip"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-image"/></svg><span>사진 없음</span></span>
-        <span class="chip chip--ghost" id="styleChip">CLEAN HORIZON</span>
-        <span class="chip chip--ghost" id="renderChip">—</span>
-        <div class="stage-tools">
-          <div class="seg seg--mini" id="bgSeg" role="group" aria-label="프리뷰 배경">
-            <button type="button" data-bg="dark" aria-pressed="true" title="다크 배경" aria-label="다크 배경"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-moon"/></svg></button>
-            <button type="button" data-bg="light" aria-pressed="false" title="라이트 배경" aria-label="라이트 배경"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sun"/></svg></button>
-          </div>
-          <div class="zoom-group">
-            <button class="icon-btn" id="zoomOutBtn" type="button" aria-label="축소" title="축소"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-minus"/></svg></button>
-            <button class="icon-btn icon-btn--wide" id="zoomFitBtn" type="button" aria-label="화면 맞춤" title="화면 맞춤"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-fit"/></svg><span id="zoomLabel">맞춤</span></button>
-            <button class="icon-btn" id="zoomInBtn" type="button" aria-label="확대" title="확대"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg></button>
-          </div>
-        </div>
-      </div>
-
       <div class="stage-canvas" id="stageCanvas">
         <canvas id="plateCanvas" aria-label="플레이트 미리보기 캔버스"></canvas>
 
@@ -356,32 +339,41 @@
       </section>
     </section>
 
-    <!-- ── 선택된 사진 (컴팩트 활성 세션 카드) ─────────────────────── -->
+    <!-- ── 파일명 바 (1줄) — 사진 이름·해상도, 변경·비우기 ──────────── -->
     <section class="session" id="sessionCard" aria-label="선택한 사진" hidden>
       <span class="session-thumb"><canvas id="sessionThumb" width="72" height="72" aria-hidden="true"></canvas></span>
-      <div class="session-info">
-        <b class="session-name" id="metaName">—</b>
-        <span class="session-facts">
-          <span id="metaSize">—</span>
-          <span class="sep" aria-hidden="true">·</span>
-          <span id="metaBytes">—</span>
-          <span class="chip chip--exif" id="metaExifChip"><span id="metaExif">—</span></span>
-        </span>
-      </div>
+      <b class="session-name" id="metaName">—</b>
+      <span class="session-facts">
+        <span id="metaSize">—</span>
+        <span class="sep" aria-hidden="true">·</span>
+        <span id="metaBytes">—</span>
+        <span class="chip chip--exif" id="metaExifChip"><span id="metaExif">—</span></span>
+      </span>
       <div class="session-actions">
-        <button class="btn btn-ghost pc-only" id="sessionOpenFilesBtn" type="button" title="사진 여러 장 열기"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-image"/></svg><span>파일 열기</span></button>
-        <button class="btn btn-ghost pc-only" id="sessionOpenFolderBtn" type="button" title="폴더 열기 (Workspace)"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-folder-open"/></svg><span>폴더</span></button>
+        <span class="chip chip--ghost session-chip" id="styleChip">CLEAN HORIZON</span>
+        <span class="chip chip--ghost session-chip" id="renderChip">—</span>
         <button class="btn btn-ghost" id="changeBtn" type="button" title="사진 변경"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-swap"/></svg><span>변경</span></button>
         <button class="btn btn-ghost" id="clearBtn" type="button" title="비우기" aria-label="캔버스 비우기"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-close"/></svg><span class="hide-xs">비우기</span></button>
       </div>
     </section>
 
-    <!-- ── 하단 가로 프레임 슬라이더 ───────────────────────────────── -->
+    <!-- ── 하단 가로 프레임 슬라이더 — 머리줄이 프리뷰 배경·줌을 진다 ── -->
     <section class="strip" aria-label="프레임 갤러리">
       <div class="strip-head">
         <span class="strip-title">FRAME LIBRARY</span>
         <span class="strip-count"><b id="frameCount">13</b> SIGNATURES</span>
         <span class="strip-hint">휠 · 드래그 · 스와이프 · FYRA 04는 다시 눌러 테마</span>
+        <div class="plate-tools">
+          <div class="seg seg--mini" id="bgSeg" role="group" aria-label="프리뷰 배경">
+            <button type="button" data-bg="dark" aria-pressed="true" title="다크 배경" aria-label="다크 배경"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-moon"/></svg></button>
+            <button type="button" data-bg="light" aria-pressed="false" title="라이트 배경" aria-label="라이트 배경"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-sun"/></svg></button>
+          </div>
+          <div class="zoom-group">
+            <button class="icon-btn" id="zoomOutBtn" type="button" aria-label="축소" title="축소"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-minus"/></svg></button>
+            <button class="icon-btn icon-btn--wide" id="zoomFitBtn" type="button" aria-label="화면 맞춤" title="화면 맞춤"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-fit"/></svg><span id="zoomLabel">맞춤</span></button>
+            <button class="icon-btn" id="zoomInBtn" type="button" aria-label="확대" title="확대"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-plus"/></svg></button>
+          </div>
+        </div>
       </div>
       <div class="strip-track" id="frameStrip" role="radiogroup" aria-label="프레임 스타일 선택"></div>
     </section>
@@ -679,6 +671,6 @@
   <script src="js/emblems.js?v=20261115-prod-v2" defer></script>
   <script src="js/exif-core.js?v=20261115-prod-v2" defer></script>
   <script src="js/plate.js?v=20261115-prod-v2" defer></script>
-  <script src="app.js?v=20261117-navy" defer></script>
+  <script src="app.js?v=20261119-viewport" defer></script>
 </body>
 </html>

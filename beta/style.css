@@ -535,21 +535,9 @@ button.portal-item:disabled:hover { background: transparent; }
     linear-gradient(180deg, var(--stage-light-a), var(--stage-light-b));
 }
 
-.stage-bar {
-  flex: none;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-  height: 52px;
-  padding: 0 12px;
-  border-bottom: 1px solid var(--line-soft);
-  background: rgba(12, 13, 12, 0.4);
-  overflow: hidden;
-}
-.stage[data-bg="light"] .stage-bar {
-  background: rgba(255, 255, 255, 0.45);
-  border-bottom-color: rgba(0, 0, 0, 0.08);
-}
+/* No bar across the top of the plate: the preview canvas runs from the header
+   down to the filename row, and the background / zoom controls it used to carry
+   now ride in the frame library's head line at the bottom (see .plate-tools). */
 
 .chip {
   display: inline-flex; align-items: center; gap: 5px;
@@ -576,8 +564,6 @@ button.portal-item:disabled:hover { background: transparent; }
   color: #2a2c28;
 }
 .stage[data-bg="light"] .chip--ghost { color: #6b7167; background: transparent; }
-
-.stage-tools { margin-left: auto; display: flex; align-items: center; gap: 6px; flex: none; }
 
 .seg {
   display: inline-flex;
@@ -626,7 +612,6 @@ button.portal-item:disabled:hover { background: transparent; }
 
 .stage .icon-btn { background: rgba(20, 22, 20, 0.7); }
 .stage[data-bg="light"] .icon-btn { background: rgba(255, 255, 255, 0.7); }
-.stage-bar .icon-btn { min-height: 44px; height: 44px; }
 
 .stage-canvas {
   position: relative;
@@ -754,37 +739,44 @@ button.portal-item:disabled:hover { background: transparent; }
 .stage[data-bg="light"] .inapp-banner { background: rgba(139, 108, 232, 0.12); }
 .stage[data-bg="light"] .inapp-msg { color: #2a2c28; }
 
-/* ── selected-photo session card ────────────────────────────────────────── */
+/* ── filename row (one line, the whole bottom stack starts here) ──────────
+   Reads left to right: thumbnail · name · size · tags, then the summary chips
+   and the two file actions. The viewport controls (background · zoom) sit in
+   the frame library's head line directly below, so this row stays short and
+   the plate keeps the height. */
 .session {
   flex: none;
   display: flex;
   align-items: center;
-  gap: 10px;
-  height: 62px;
-  padding: 0 14px;
+  gap: 9px;
+  height: 48px;
+  padding: 0 12px;
   border-bottom: 1px solid var(--line-soft);
-  background: linear-gradient(180deg, var(--ink-2), var(--ink-2));
+  background: var(--ink-2);
+  overflow: hidden;
 }
 .session-thumb {
-  width: 42px; height: 42px;
+  width: 34px; height: 34px;
   flex: none;
-  border-radius: 8px;
+  border-radius: 7px;
   overflow: hidden;
   border: 1px solid var(--line);
   background: var(--ink-3);
   display: grid; place-items: center;
 }
-.session-thumb canvas { width: 42px; height: 42px; display: block; object-fit: cover; }
-.session-info { min-width: 0; flex: 1 1 auto; display: flex; flex-direction: column; gap: 1px; }
+.session-thumb canvas { width: 34px; height: 34px; display: block; object-fit: cover; }
 .session-name {
   font-size: 12.5px; font-weight: 650; color: var(--text-hi);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  min-width: 0; flex: 0 1 auto; max-width: 46%;
 }
 .session-facts {
   display: flex; align-items: center; gap: 5px;
+  flex: 0 0 auto;
   font-family: var(--mono); font-size: 10px; color: var(--dim);
   letter-spacing: 0.02em;
-  white-space: nowrap; overflow: hidden;
+  white-space: nowrap;
+  min-width: 0; overflow: hidden;
 }
 .session-facts .sep { color: #C9C1DC; }
 .chip--exif {
@@ -794,12 +786,21 @@ button.portal-item:disabled:hover { background: transparent; }
   background: rgba(139, 108, 232, 0.08);
   flex: none;
 }
-.session-actions { display: flex; align-items: center; gap: 6px; flex: none; }
+/* the two read-out chips ride with the actions, at the end of the row */
+.session-chip {
+  background: var(--tint);
+  border-color: var(--line);
+  color: var(--dim);
+}
+.session-actions {
+  display: flex; align-items: center; gap: 6px;
+  flex: none; margin-left: auto;
+}
 
 /* ── frame strip ────────────────────────────────────────────────────────── */
 .strip {
   flex: none;
-  padding: 8px 0 8px;
+  padding: 0 0 8px;
   border-bottom: 1px solid var(--line-soft);
   background: #FBFAFE;
 }
@@ -807,7 +808,8 @@ button.portal-item:disabled:hover { background: transparent; }
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 0 14px 4px;
+  min-height: 44px;
+  padding: 0 14px;
   font-family: var(--mono);
   font-size: 9.5px;
   letter-spacing: 0.12em;
@@ -816,7 +818,25 @@ button.portal-item:disabled:hover { background: transparent; }
 .strip-title { color: var(--muted); }
 .strip-count { color: var(--dim); }
 .strip-count b { color: var(--accent); font-weight: 600; }
-.strip-hint { margin-left: auto; letter-spacing: 0.04em; color: #8B8598; }
+.strip-hint {
+  margin-left: auto;
+  letter-spacing: 0.04em;
+  color: #8B8598;
+  min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+/* the plate's own view controls live at the end of the library head line:
+   what the old stage bar carried now sits directly under the filename row,
+   at the bottom of the screen, where the hand already is. */
+.plate-tools { display: flex; align-items: center; gap: 6px; flex: none; margin-left: 6px; }
+.plate-tools .seg { background: var(--ink-2); border-color: var(--line); }
+.plate-tools .seg button { color: var(--muted); }
+.plate-tools .seg button + button { border-left-color: var(--line); }
+.plate-tools .seg button[aria-pressed="true"] { background: var(--tint-2); color: var(--accent-dim); }
+.plate-tools .icon-btn { background: var(--ink-2); border-color: var(--line); color: var(--text); }
+.plate-tools .icon-btn:hover { border-color: var(--accent-dim); color: var(--accent); }
+[data-theme="dark"] .plate-tools .seg,
+[data-theme="dark"] .plate-tools .icon-btn { background: var(--ink-3); }
 
 .strip-track {
   display: flex;
@@ -1314,7 +1334,7 @@ input[type="range"]::-moz-range-thumb {
   :root { --header-h: 60px; --thumb-h: 96px; --card-w: 150px; }
   .app-header { padding: 0 18px; gap: 14px; }
   .brand-name { font-size: 25px; }
-  .strip-head { padding: 0 18px 5px; font-size: 10px; }
+  .strip-head { padding: 0 18px; font-size: 10px; }
   .strip-track { padding: 3px 18px 5px; gap: 10px; }
   .toolbar { padding: 7px 18px; }
   .tool { font-size: 11.5px; }
@@ -1337,7 +1357,9 @@ input[type="range"]::-moz-range-thumb {
 }
 
 @media (max-width: 900px) {
+  /* the hint steps out first, so the tools keep the right edge to themselves */
   .strip-hint { display: none; }
+  .plate-tools { margin-left: auto; }
 }
 
 @media (max-width: 520px) {
@@ -1349,20 +1371,24 @@ input[type="range"]::-moz-range-thumb {
   .brand-name { font-size: 22px; }
   .brand em { padding-left: 10px; }
   .hbtn { padding: 0 9px; gap: 5px; font-size: 12px; }
-  .stage-bar { padding: 0 8px; gap: 5px; }
   #styleChip, #renderChip { display: none; }
-  .session { padding: 0 10px; gap: 8px; height: 58px; }
+  .session { padding: 0 10px; gap: 7px; height: 46px; }
+  .session-name { max-width: 54%; }
   .session-facts #metaBytes { display: none; }
   .session-facts .sep { display: none; }
+  .session-facts #metaExifChip { display: none; }
   .session-actions .btn { padding: 0 10px; font-size: 11.5px; }
   .session-actions .btn .ic { width: 16px; height: 16px; }
-  .strip { padding: 7px 0 6px; }
+  .strip { padding: 0 0 6px; }
+  .strip-count { display: none; }
+  .strip-head { padding: 0 10px; gap: 6px; }
+  .plate-tools { gap: 5px; }
   .strip-track { padding: 3px 10px 3px; gap: 7px; }
   .toolbar { padding: 5px 8px calc(5px + env(safe-area-inset-bottom)); gap: 5px; }
   .tool { font-size: 9.5px; }
   .tool .ic { width: 16px; height: 16px; }
   .field-pair { grid-template-columns: 1fr; }
-  .stage-bar .zoom-group .icon-btn--wide span { display: none; }
+  .plate-tools .zoom-group .icon-btn--wide span { display: none; }
   .inapp-banner { gap: 6px; padding: 5px 6px 5px 8px; }
   .inapp-msg { font-size: 10.5px; }
   .inapp-copy { padding: 0 8px; font-size: 10.5px; }
@@ -1386,8 +1412,14 @@ input[type="range"]::-moz-range-thumb {
   .home-badges li { font-size: 9.5px; padding: 6px 9px; }
 }
 
+@media (max-width: 430px) {
+  /* the filename keeps its room: on a phone the two file actions are icons */
+  .session-actions .btn span { display: none; }
+  .session-actions .btn { min-width: 44px; justify-content: center; }
+}
+
 @media (max-width: 359px) {
-  .stage-bar .seg--mini { display: none; }
+  .plate-tools .seg--mini { display: none; }
   .app-header { padding: 0 8px; gap: 6px; }
   .header-actions { gap: 4px; }
   .brand { gap: 8px; }
@@ -1403,10 +1435,9 @@ input[type="range"]::-moz-range-thumb {
 
 @media (max-height: 640px) {
   :root { --thumb-h: 62px; --toolbar-h: 52px; }
-  .session { height: 52px; }
-  .session-thumb { width: 36px; height: 36px; }
-  .session-thumb canvas { width: 36px; height: 36px; }
-  .stage-bar { height: 48px; }
+  .session { height: 46px; }
+  .session-thumb { width: 32px; height: 32px; }
+  .session-thumb canvas { width: 32px; height: 32px; }
   .empty-state { gap: 8px; padding: 12px; }
   .dropzone { min-height: 96px; padding: 12px 16px; }
   .empty-note { display: none; }
@@ -1789,7 +1820,7 @@ input[type="range"]::-moz-range-thumb {
   .ws-strip { display: flex; }
   .strip-hint { display: inline; margin-left: auto; }
 
-  .strip { padding-bottom: 9px; }
+  .strip { padding: 0 0 9px; }
   .ws-track { padding-bottom: 12px; }
   /* the eight signatures share one row when the column allows it, and keep
      scrolling as a strip when it cannot */
@@ -1814,11 +1845,11 @@ input[type="range"]::-moz-range-thumb {
 
 /* 짧은 PC 화면(예: 1280×720)에서는 스트립 두 줄의 높이를 줄여 캔버스를 지킨다 */
 @media (min-width: 1024px) and (max-height: 820px) {
-  .strip { padding: 6px 0 7px; }
+  .strip { padding: 0 0 7px; }
   .frame-thumb { height: 72px; }
   .ws-thumb { height: 52px; }
   .ws-track { padding-top: 6px; padding-bottom: 8px; }
-  .session { height: 56px; }
+  .session { height: 48px; }
 }
 
 /* ══ BETA (PKPilot0003/beta) ══════════════════════════════════════════════
@@ -2293,27 +2324,32 @@ html:has(.sheet-backdrop.is-open) .hd2-theme-toggle { opacity: 0; pointer-events
      landing card and in ⋮) */
   body[data-view="editor"] #headerSampleBtn { display: none; }
 }
-/* the studio: clear the frame library and (on a phone) the bottom toolbar so the
-   toggle floats over the plate's empty lower corner instead of a control */
+/* the studio: the toggle docks onto the bottom control panel instead of
+   floating halfway up the plate. Its bottom offset is measured by app.js
+   (syncThemeToggle) from the top edge of that panel — filename row, library,
+   workspace strip, toolbar — because the strip changes height with the frame
+   cards, the workspace and the safe area. The value below is only the fallback
+   for the first frame, before the measurement lands. */
 body[data-view="editor"] .hd2-theme-toggle {
   --hd2-toggle-right: 12px;
-  --hd2-toggle-bottom: 285px;
+  --hd2-toggle-bottom: 260px;
 }
-/* …and on a PC stay left of the fixed inspector, above the session row */
+/* …and on a PC stay left of the fixed inspector */
 @media (min-width: 1024px) {
   body[data-view="editor"] .hd2-theme-toggle {
     --hd2-toggle-right: calc(var(--ins-w) + 12px);
-    --hd2-toggle-bottom: 250px;
+    --hd2-toggle-bottom: 220px;
   }
 }
-/* the two multi-cut plates float their 4-cell control on the same corner, so the
-   toggle steps up over it instead of stacking on top of it */
+/* the two multi-cut plates float their 4-cell control in the same corner the
+   docked toggle now occupies: it steps aside to the 4-cell button's left, at
+   the same height, so the two never cover each other */
 body[data-view="editor"]:has(#slotToggle:not([hidden])) .hd2-theme-toggle {
-  --hd2-toggle-bottom: 340px;
+  --hd2-toggle-right: 66px;
 }
 @media (min-width: 1024px) {
   body[data-view="editor"]:has(#slotToggle:not([hidden])) .hd2-theme-toggle {
-    --hd2-toggle-bottom: 300px;
+    --hd2-toggle-right: calc(var(--ins-w) + 66px);
   }
 }
 /* the header now carries a fourth control on a phone, so the product name steps
