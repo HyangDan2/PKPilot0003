@@ -304,18 +304,27 @@ def static_tests():
     check("the studio keeps the floating toggle instead of hiding it",
           editor_rule is not None and "visibility: hidden" not in editor_rule.group(0)
           and "opacity: 0" not in editor_rule.group(0))
-    check("the studio clears the frame library on a phone",
-          editor_rule is not None and "--hd2-toggle-bottom: 285px" in editor_rule.group(0),
+    check("the studio keeps the toggle floating instead of hiding it",
+          editor_rule is not None and "--hd2-toggle-bottom:" in editor_rule.group(0),
           editor_rule.group(0) if editor_rule else "no editor rule")
+    # the dock: the toggle sits on the bottom control panel, and its offset is
+    # measured from that panel's top edge (the strip, the workspace row and the
+    # phone toolbar all change its height, which CSS cannot see).
+    dock_js = read("app.js")
+    check("the studio docks the toggle onto the bottom control panel",
+          "function syncThemeToggle" in dock_js
+          and dock_js.count("setProperty('--hd2-toggle-bottom'") >= 1
+          and "[el.sessionCard, el.stripSection, el.wsStrip, el.toolbarEl]" in dock_js,
+          "app.js has no dock measurement")
     pc_rule = re.search(r"@media \(min-width: 1024px\) \{\s*body\[data-view=\"editor\"\] "
                         r"\.hd2-theme-toggle \{[^}]*\}", mark_css, re.S)
     check("the studio keeps the toggle left of the fixed inspector on a PC",
           pc_rule is not None and "--hd2-toggle-right: calc(var(--ins-w) + 12px)" in pc_rule.group(0)
-          and "--hd2-toggle-bottom: 250px" in pc_rule.group(0),
+          and "--hd2-toggle-bottom:" in pc_rule.group(0),
           pc_rule.group(0) if pc_rule else "no PC rule")
-    check("the toggle steps above the 4-cell control on the two multi-cut plates",
+    check("the toggle steps aside from the 4-cell control on the two multi-cut plates",
           re.search(r'body\[data-view="editor"\]:has\(#slotToggle:not\(\[hidden\]\)\) '
-                    r"\.hd2-theme-toggle \{[^}]*--hd2-toggle-bottom: 340px;", mark_css, re.S) is not None)
+                    r"\.hd2-theme-toggle \{[^}]*--hd2-toggle-right: 66px;", mark_css, re.S) is not None)
     check("the phone header keeps 샘플 out of the studio's way",
           'body[data-view="editor"] #headerSampleBtn { display: none; }' in mark_css)
     check("the landing keeps the floating toggle's own offset",
@@ -476,10 +485,11 @@ def static_tests():
     check("folder input is a directory picker",
           re.search(r'id="wsFolderInput"[^>]*webkitdirectory', html) is not None)
     check("recursive-subfolder option", 'id="recursiveToggle"' in html)
-    check("landing and session bar carry the open buttons",
+    check("the header and the empty state carry the open buttons",
           all(f'id="{i}"' in html for i in ("openFilesBtn", "openFolderBtn",
-                                            "emptyOpenFilesBtn", "emptyOpenFolderBtn",
-                                            "sessionOpenFilesBtn", "sessionOpenFolderBtn")))
+                                            "emptyOpenFilesBtn", "emptyOpenFolderBtn")))
+    check("the filename row carries no second open button",
+          "sessionOpenFilesBtn" not in html and "sessionOpenFolderBtn" not in html)
     check("bulk export control in the export pane",
           'id="bulkBtn"' in html and 'id="bulkStatus"' in html)
     check("open-folder icons in the sprite", "i-folder-open" in ids and "i-folder" in ids)
@@ -4033,7 +4043,7 @@ def browser_tests(port):
         narrow = spage.evaluate("""() => {
           const name = document.querySelector('.brand-name');
           const dots = document.querySelector('.portal-menu-btn').getBoundingClientRect();
-          const bar = document.querySelector('.stage-bar');
+          const bar = document.querySelector('.strip-head');
           const barKids = [...bar.children].map(c => c.getBoundingClientRect().right);
           return {
             sw: document.documentElement.scrollWidth, iw: window.innerWidth,
@@ -4050,7 +4060,7 @@ def browser_tests(port):
               f"{narrow['nameText']} clipped={narrow['nameClipped']}")
         check("320: portal menu button fully inside", narrow["dotsRight"] <= narrow["iw"],
               json.dumps(narrow))
-        check("320: stage bar content inside", narrow["barRight"] <= narrow["barWidth"] + 0.5,
+        check("320: library head content inside", narrow["barRight"] <= narrow["barWidth"] + 0.5,
               json.dumps(narrow))
         check("320: header one row", narrow["headerH"] <= 64, json.dumps(narrow))
 

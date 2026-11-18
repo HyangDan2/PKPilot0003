@@ -5,7 +5,10 @@ its own `index.html`, `style.css`, `app.js`, `js/`, samples, icons and manifest 
 so it runs from its own URL (`/PKPilot0003/beta/`) and shares nothing at runtime
 with the production build in `/PKPilot0003/`.
 
-> Production is unchanged: eight frames, no beta header, no multi-cut code.
+> Production carries the same thirteen signatures since 2026-11-15; what stays
+> beta-only is the header build badge, the amber accent palette and these notes.
+> The studio shell (canvas to the header, one-line filename bar, view controls in
+> the library head, docked Light/Dark toggle) is identical in both builds.
 
 ## What the beta adds
 

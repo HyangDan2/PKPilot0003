@@ -117,13 +117,14 @@
     stageCanvas: $('#stageCanvas'),
     canvas: $('#plateCanvas'),
     empty: $('#emptyState'),
-    photoChip: $('#photoChip'),
     styleChip: $('#styleChip'),
     renderChip: $('#renderChip'),
     zoomLabel: $('#zoomLabel'),
     fileInput: $('#fileInput'),
     dropzone: $('#dropzone'),
     sessionCard: $('#sessionCard'),
+    stripSection: $('.strip'),
+    toolbarEl: $('#toolbar'),
     sessionThumb: $('#sessionThumb'),
     metaName: $('#metaName'),
     metaSize: $('#metaSize'),
@@ -568,7 +569,6 @@
     if (!p) {
       el.empty.hidden = false;
       el.sessionCard.hidden = true;
-      el.photoChip.lastElementChild.textContent = '사진 없음';
       el.downloadBtn.disabled = true;
       el.headerDownloadBtn.disabled = true;
       if (el.shareBtn) el.shareBtn.disabled = true;
@@ -576,6 +576,7 @@
       $('#resetMetaBtn').disabled = true;
       syncMenuState();
       syncHomeSession();
+      scheduleThemeToggle();
       return;
     }
     el.empty.hidden = true;
@@ -585,7 +586,6 @@
     el.metaSize.textContent = p.w + ' × ' + p.h;
     el.metaBytes.textContent = bytes(p.bytes);
     el.metaExif.textContent = (tagCount || 0) + ' tags';
-    el.photoChip.lastElementChild.textContent = p.w + ' × ' + p.h;
     el.downloadBtn.disabled = false;
     el.headerDownloadBtn.disabled = false;
     if (el.shareBtn) el.shareBtn.disabled = false;
@@ -594,6 +594,7 @@
     paintSessionThumb();
     syncMenuState();
     syncHomeSession();
+    scheduleThemeToggle();
   }
 
   function paintSessionThumb() {
@@ -722,7 +723,49 @@
       var url = location.pathname + location.search + (next === 'editor' ? '#editor' : '');
       if (window.history && history.replaceState) history.replaceState(null, '', url);
     } catch (e) { /* a file:// page or a sandboxed frame may refuse the rewrite */ }
+    scheduleThemeToggle();
     return next;
+  }
+
+  /* ── the floating Light/Dark toggle's dock ───────────────────────────────
+     assets/hd2-theme.js floats one shared button on every HD2Lab route, and it
+     is this app's only theme control. In the studio it belongs on the bottom
+     control panel rather than over the plate, so its offset is measured from
+     the panel's top edge; the library, the workspace strip, the phone toolbar
+     and the safe area all change that height, and none of it is known to CSS. */
+  function syncThemeToggle() {
+    var t = document.getElementById('hd2ThemeToggle');
+    if (!t) return;
+    if (state.view !== 'editor') {
+      t.style.removeProperty('--hd2-toggle-bottom');
+      return;
+    }
+    var panels = [el.sessionCard, el.stripSection, el.wsStrip, el.toolbarEl];
+    var top = null;
+    panels.forEach(function (node) {
+      if (!node || node.hidden) return;
+      var box = node.getBoundingClientRect();
+      if (!box.height) return;
+      if (top === null || box.top < top) top = box.top;
+    });
+    if (top === null) { t.style.removeProperty('--hd2-toggle-bottom'); return; }
+    /* 8px of air between the button and the panel it now sits on */
+    var offset = Math.max(12, Math.round(window.innerHeight - top) + 8);
+    /* a multi-cut plate parks its 4-cell button in the same corner: the toggle
+       steps to its left (style.css) and shares its baseline, so the pair reads
+       as one row of controls instead of two buttons a few pixels apart */
+    var fab = el.slotToggle;
+    if (fab && !fab.hidden) {
+      var fbox = fab.getBoundingClientRect();
+      if (fbox.height) offset = Math.round(window.innerHeight - fbox.bottom);
+    }
+    t.style.setProperty('--hd2-toggle-bottom', offset + 'px');
+  }
+
+  var dockRaf = 0;
+  function scheduleThemeToggle() {
+    if (dockRaf) return;
+    dockRaf = requestAnimationFrame(function () { dockRaf = 0; syncThemeToggle(); });
   }
 
   /* ── the ⋮ menu (workspace · samples · navigation) ────────────────────── */
@@ -1110,6 +1153,7 @@
        own floating control. A single-cut frame brings the strip straight back. */
     if (el.sessionCard) el.sessionCard.hidden = !state.photo || multi;
     if (!multi) state.slotOpen = false;
+    scheduleThemeToggle();
     if (el.slotToggle) {
       el.slotToggle.hidden = !multi;
       el.slotToggle.setAttribute('aria-expanded', multi && state.slotOpen ? 'true' : 'false');
@@ -1424,6 +1468,7 @@
       if (multi && el.bulkLabel) el.bulkLabel.textContent = '전체 일괄 저장 (' + ws.entries.length + '장)';
     }
     if (el.dockCount) el.dockCount.textContent = show ? ((idx >= 0 ? idx + 1 : 0) + ' / ' + ws.entries.length) : '';
+    scheduleThemeToggle();
   }
 
   function scrollWsIntoView() {
@@ -2738,11 +2783,11 @@
     $('#resetMetaBtn').addEventListener('click', function () { resetExifFromPhoto(); });
 
     // workspace: open several photos / a folder
-    ['#openFilesBtn', '#emptyOpenFilesBtn', '#sessionOpenFilesBtn'].forEach(function (sel) {
+    ['#openFilesBtn', '#emptyOpenFilesBtn'].forEach(function (sel) {
       var b = $(sel);
       if (b) b.addEventListener('click', function () { if (el.wsFileInput) el.wsFileInput.click(); });
     });
-    ['#openFolderBtn', '#emptyOpenFolderBtn', '#sessionOpenFolderBtn'].forEach(function (sel) {
+    ['#openFolderBtn', '#emptyOpenFolderBtn'].forEach(function (sel) {
       var b = $(sel);
       if (b) b.addEventListener('click', openFolder);
     });
@@ -3195,9 +3240,14 @@
     }
 
     // resize
-    var redraw = function () { render(); scheduleStrip(); paintHomeFrames(); };
+    var redraw = function () { render(); scheduleStrip(); paintHomeFrames(); scheduleThemeToggle(); };
     if (window.ResizeObserver) {
       new ResizeObserver(render).observe(el.stageCanvas);
+      /* the toggle rides the bottom panel, so it follows that panel's height */
+      var dockObs = new ResizeObserver(scheduleThemeToggle);
+      [el.sessionCard, el.stripSection, el.wsStrip, el.toolbarEl].forEach(function (node) {
+        if (node) dockObs.observe(node);
+      });
     }
     window.addEventListener('resize', redraw);
     window.addEventListener('orientationchange', function () { setTimeout(redraw, 240); });
@@ -3220,6 +3270,7 @@
         }
         render();
         scheduleStrip();
+        scheduleThemeToggle();
       };
       if (mq.addEventListener) mq.addEventListener('change', onWide);
       else if (mq.addListener) mq.addListener(onWide);
