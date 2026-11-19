@@ -1,347 +1,367 @@
 # HD2Lab · Shutterplate (PKPilot0003)
 
-사진 한 장(또는 네 장)을 한 장의 **플레이트**로. 사진을 올리면 EXIF를 읽어 노출 스펙·서명을 얹고,
-**13종 시그니처 프레임**(단일컷 11종 + 4컷 멀티 2종) 중 하나를 골라 원본 1:1 해상도로
-**사진 앨범에 저장**하는 **브라우저 로컬 포토 프레임 스튜디오**입니다.
+One photo — or four — onto a single **plate**. Drop a photo in and the app reads its EXIF, lays the exposure
+spec and a signature on it, and saves it to your **photo album** at the original 1:1 resolution in one of
+**13 signature frames** (11 single-cut, 2 four-cut multi). It is a **browser-local photo-frame studio**.
 
-> 2026-11-15 — `/PKPilot0003/beta/`에서 검증한 13 프레임 빌드를 정식판으로 승격했습니다.
-> 베타 폴더는 그대로 남아 있어 `/PKPilot0003/beta/`로도 열립니다.
+> 2026-11-15 — the 13-frame build verified at `/PKPilot0003/beta/` was promoted to the production build.
+> The beta folder is still there, so `/PKPilot0003/beta/` keeps working.
 
-- 라이브: <https://hyangdan2.github.io/PKPilot0003/>
-- 업로드 **0 B** — 사진은 서버로 전송되지 않습니다. 파싱·렌더·인코딩 전부 이 기기에서 끝납니다.
-- 외부 CDN 의존 없음 — EXIF 파서까지 로컬 번들. 커스텀 캡션의 **필기체**만 Google Fonts의
-  `Caveat`를 불러오고, 그 요청이 막히면 프레임의 로컬 필기체로 떨어집니다.
+- Live: <https://hyangdan2.github.io/PKPilot0003/>
+- Uploads **0 B** — photos are never sent anywhere. Parsing, rendering and encoding all happen on this device.
+- No external CDN — even the EXIF parser is bundled locally. Only the handwritten caption font loads
+  `Caveat` from Google Fonts, and if that request is blocked the frame's local script face is used instead.
 
-## 랜딩 (첫 화면) — Film Studio식 홈
+## Landing screen — a Film Studio style home
 
-앱을 열면 편집기가 아니라 **랜딩**이 먼저 뜹니다(`#homeView`). 편집기는 그 뒤에 있고,
-좌상단 **타이틀(`Shutterplate` · HD2Lab 뱃지)을 누르면 언제든 랜딩으로 돌아옵니다** —
-사진·프레임·여백·엠블럼은 그대로 남아 있어서 `계속 편집하기 (Continue Editing)` 한 번으로 이어집니다.
-(`#editor` 해시로 들어오면 곧바로 편집기 — 북마크용 지름길.)
+Opening the app shows a **landing** first (`#homeView`), not the editor. The editor sits behind it, and the
+**title in the top left (`Shutterplate` · HD2Lab mark) brings you back to the landing at any time** — the
+photo, frame, margins and emblem stay as they were, so `Continue editing` picks up exactly where you left off.
+(The `#editor` hash goes straight to the editor — handy as a bookmark.)
 
-- **히어로** — 공식 듀얼 스큐 마크 + `Shutterplate` + HD2Lab 뱃지 + 한 줄 부제, 그리고 로컬 EXIF 안내.
-- **Active Session** — 사진이 이미 열려 있으면 썸네일 · 파일명 · 해상도 · 지금 고른 프레임을 보여주고
-  `계속 편집하기`로 되돌립니다.
-- **사진 열기 / 샘플 사진** 2단 카드 — `사진 선택`(PC는 여러 장 워크스페이스, 폰은 단일 선택) ·
-  `폴더 열기`(File System Access) + 드래그앤드롭. 오른쪽은 `가로 풍경 (sample-01.jpg)` ·
-  `세로 카페 (sample-02.jpg)` 즉시 체험.
-- **13 SIGNATURE FRAMES** — 13장 카드가 **지금 사진(없으면 프로토타입)을 각 프레임으로 그려** 보여주고,
-  카드를 누르면 그 프레임이 선택된 채 편집기가 열립니다(사진이 없으면 sample-01을 자동으로 엽니다).
-  앞의 11장은 한 장짜리, 마지막 두 장(Contact Sheet · FYRA 04)은 네 장으로 한 플레이트를 만듭니다.
-- 랜딩은 자기 박스 안에서만 스크롤합니다 — 문서는 여전히 100dvh 잠금. PC는 가운데 정렬(최대 1040px),
-  폰은 한 열로 쌓입니다.
-- 인앱 브라우저(카카오톡 등) 안내 배너는 랜딩 상단에도 같은 방식으로 붙습니다.
+- **Hero** — the official dual-skew mark, `Shutterplate`, the HD2Lab badge, a one-line subtitle, and the
+  local-EXIF note.
+- **Active session** — when a photo is already open, it shows its thumbnail, file name, resolution and current
+  frame, with `Continue editing` to return.
+- **Open photo / sample photo** two-card row — `Choose photo` (multi-photo workspace on desktop, single
+  selection on phones), `Open folder` (File System Access) and drag and drop. The right card is an instant
+  demo: `Landscape (sample-01.jpg)` and `Cafe portrait (sample-02.jpg)`.
+- **13 SIGNATURE FRAMES** — 13 cards, each **painting the current photo (or a prototype) in that frame**, so
+  tapping a card opens the editor with that frame selected (and opens sample-01 if no photo is loaded). The
+  first 11 are single-cut; the last two (Contact Sheet, FYRA 04) make one plate from four photos.
+- The landing scrolls inside its own box — the document itself stays locked to 100dvh. Centred at up to
+  1040px on desktop, a single column on phones.
+- The in-app-browser notice (KakaoTalk and friends) is shown at the top of the landing in the same way.
 
-## 화면 구성 (편집기)
+## Editor layout
 
-100dvh 한 화면에 모든 조작이 들어갑니다. 세로 스크롤이 없습니다.
+Every control fits one 100dvh screen. There is no vertical page scroll.
 
-1. **캔버스** — 플레이트 실시간 프리뷰. 휠/핀치 확대, 드래그 이동, 다크/라이트 배경.
-   캔버스 위에는 어떤 바도 얹히지 않습니다 — 헤더 바로 아래부터 파일명 바 바로 위까지가 뷰포트입니다.
-2. **파일명 바 (1줄)** — 사진이 없을 때는 캔버스 안의 드래그앤드롭 박스 + `샘플 사진 불러오기`,
-   사진을 고르면 **썸네일 · 파일명 · 해상도 · EXIF 칩 · `변경` / `비우기`** 가 한 줄로 앉습니다.
-   파일을 여는 것은 헤더(`파일 열기` · `폴더 열기` · `샘플` · `저장` · `⋮`)의 몫입니다.
-3. **FRAME LIBRARY** — 파일명 바 아래 가로 슬라이더. 13종 프레임의 실시간 미니 썸네일 · 이름 ·
-   특징 뱃지를 좌우로 넘기며(휠 · 드래그 · 스와이프 · ←/→) 탭하면 즉시 반영되고,
-   선택된 카드에 오렌지 강조 링이 붙습니다. 머리줄 오른쪽에 **프리뷰 배경(다크/라이트) · 줌(축소 · 맞춤 · 확대)** 이
-   붙어 있어, 예전 캔버스 상단 툴바가 하던 일을 하단에서 그대로 합니다.
-4. **도구 모음** — `EXIF 편집` · `프레임/여백` · `엠블럼` · `내보내기`.
-   평소에는 접혀 있고, 누르면 해당 제어 패널 하나만 시트로 올라옵니다
-   (모바일은 바텀시트 · Esc/백드롭으로 닫힘).
-5. **Light/Dark 플로팅 토글** — 화면 우하단의 공통 버튼 하나가 유일한 테마 스위치입니다.
-   편집기에서는 하단 컨트롤 패널(파일명 바 · 프레임 라이브러리 · 워크스페이스 스트립 · 도구 모음)의
-   윗변에 8px 간격으로 밀착하고, 4컷 플레이트에서는 `4칸` 버튼 왼쪽으로 비켜섭니다.
-   패널 높이가 바뀌면(프레임 카드 · 워크스페이스 · 안전 영역) 오프셋을 다시 재서 붙습니다.
+1. **Canvas** — the live plate preview. Wheel/pinch zoom, drag to pan, dark/light plate background.
+   No bar overlays the canvas: the viewport runs from just under the header to just above the file bar.
+2. **One-line file bar** — with no photo it holds the drop box inside the canvas plus `Load sample photo`;
+   with a photo it shows **thumbnail · file name · resolution · EXIF chip · `Change` / `Clear`** on one line.
+   Opening files is the header's job (`Open files` · `Open folder` · `Sample` · `Save` · `⋮`).
+3. **FRAME LIBRARY** — a horizontal slider under the file bar with live miniatures of the 13 frames, name and
+   feature badge; move with the wheel, drag, swipe or `←`/`→`, and a tap applies the frame instantly with an
+   accent ring on the selected card. The strip header on the right holds **preview background (dark/light) and
+   zoom (out · fit · in)** — the old canvas toolbar's work, now at the bottom.
+4. **Tool bar** — `EXIF edit` · `Frame/margin` · `Emblem` · `Export`. Collapsed by default; tapping one raises
+   only that control panel as a sheet (bottom sheet on mobile, closed with Esc or the backdrop).
+5. **Light/Dark floating toggle** — the single shared button at the bottom right is the only theme switch. In
+   the editor it sits 8px above the top edge of the bottom control panels (file bar · frame library · workspace
+   strip · tool bar) and moves aside to the left of the `4-cut` button on four-cut plates. When a panel changes
+   height (frame card, workspace, safe area) the offset is measured again and it re-attaches.
 
-### PC (≥ 1024px) — 2단 스튜디오
+### Desktop (≥ 1024px) — a two-column studio
 
-창이 1024px을 넘으면 같은 제어 패널이 **오른쪽 고정 인스펙터(372px)** 로 바뀝니다.
-하단 도구 모음과 떠다니는 시트는 사라지고 화면이 둘로 갈립니다.
+Above 1024px the same control panels become a **fixed inspector on the right (372px)**. The bottom tool bar and
+floating sheets disappear and the screen splits in two.
 
-- **왼쪽 — 메인 스테이지**: 실시간 캔버스 + 1줄 파일명 바 + 13종 프레임 스트립.
-  배경 톤 · 줌은 스트립 머리줄 오른쪽에 있습니다. 캔버스는 어떤 패널에도 가려지지 않습니다.
-- **오른쪽 — 인스펙터**: 위쪽 탭 4개(`EXIF 편집` · `프레임/여백` · `엠블럼` · `내보내기`)로
-  패널을 고르고, 슬라이더·텍스트·엠블럼을 바꾸는 **즉시 왼쪽 캔버스가 따라 그려집니다**.
-  인스펙터 발치에는 **포맷(JPEG/PNG) · 품질 · 저장** 도크가 늘 붙어 있어 시트를 여닫지 않고 한 번에 저장합니다.
-- 탭은 클릭과 `←`/`→` 키로 오갑니다.
+- **Left — main stage**: the live canvas, the one-line file bar and the 13-frame strip. Plate background and
+  zoom live in the strip header on the right. Nothing covers the canvas.
+- **Right — inspector**: four tabs on top (`EXIF edit` · `Frame/margin` · `Emblem` · `Export`) choose the panel,
+  and sliders, text and emblems **redraw the left canvas as you change them**. A **format (JPEG/PNG) · quality ·
+  save** dock is always at the inspector's foot, so saving never needs a sheet.
+- Tabs are switched by click and by `←`/`→`.
 
-### 우상단 `⋮` 메뉴 — Workspace · Samples · Navigation
+### Top-right `⋮` menu — Workspace · Samples · Navigation
 
-Film Studio와 같은 구조의 다크 드롭다운입니다. `aria-haspopup="menu"` · `aria-expanded`,
-바깥 클릭/Escape로 닫히고 Escape는 포커스를 `⋮` 버튼으로 돌려줍니다(↑/↓·Home/End 이동 포함).
+A dark dropdown with the same structure as Film Studio. `aria-haspopup="menu"` and `aria-expanded` are kept in
+sync, it closes on outside click and Escape, and Escape returns focus to the `⋮` button (with ↑/↓ · Home/End
+navigation).
 
-| 섹션 | 항목 |
+| Section | Items |
 | --- | --- |
-| **WORKSPACE** | `홈 / 랜딩 화면` · `EXIF 값으로 되돌리기`(사진 없으면 비활성) · `엠블럼 색상: 원본 컬러 ↔ All Black`(현재 상태 뱃지 · 원클릭 토글) |
-| **SAMPLES** | `가로 풍경 (sample-01)` · `세로 카페 (sample-02)` |
-| **NAVIGATION** | `HD2Lab Web-HQ`(Main Portal) · `ApplicationHub`(Apps Catalog) |
+| **WORKSPACE** | `Home / landing` · `Restore EXIF values` (disabled with no photo) · `Emblem colour: original colour ↔ All Black` (current state badge, one-click toggle) |
+| **SAMPLES** | `Landscape (sample-01)` · `Cafe portrait (sample-02)` |
+| **NAVIGATION** | `HD2Lab Web-HQ` (main portal) · `ApplicationHub` (apps catalog) |
 
-PC에서는 고정 인스펙터 위로 메뉴가 떠야 하므로, 메뉴가 열린 동안에만 헤더의 스택 순서를 올립니다.
+On desktop the menu must float above the fixed inspector, so the header's stacking order is raised only while
+the menu is open.
 
-### PC 워크스페이스 — 여러 장 · 폴더
+### Desktop workspace — several photos, or a folder
 
-여러 장을 한 번에 열거나 폴더를 열면, 프레임 스트립 아래에 **워크스페이스 사진 스트립**이 붙습니다.
-(폴더 안 사진이 1장이어도 폴더로 열었으면 표시됩니다.)
+Opening several photos at once, or a folder, attaches a **workspace photo strip** under the frame strip. (A
+one-photo folder still counts as a folder and shows the strip.)
 
-| 조작 | 동작 |
+| Action | Behaviour |
 | --- | --- |
-| 헤더 `파일 열기` / 랜딩 카드 버튼 | 사진 여러 장 동시 선택(`multiple`) |
-| 헤더 `폴더 열기` | `showDirectoryPicker`로 폴더 핸들 스캔, `하위 폴더` 체크 시 하위 폴더까지 |
-| 같은 버튼 (미지원 브라우저) | `<input type="file" webkitdirectory multiple>` 폴백 |
-| 스트립 항목 클릭 / `←` `→` | 사진 전환 — EXIF를 새로 읽고 캔버스를 다시 그립니다 |
-| `이름 ↑` / `이름 ↓` | 경로 기준 정렬(숫자 인식) |
-| 스트립 헤더 클릭 | 접기 / 펼치기 |
-| `내보내기` 탭 `전체 일괄 저장 (N장)` | 사진마다 자기 EXIF로 렌더해 순차 저장 + 진행률 표시 |
+| Header `Open files` / landing card | Select several photos at once (`multiple`) |
+| Header `Open folder` | Scans a folder handle with `showDirectoryPicker`; the `Subfolders` checkbox includes subfolders |
+| Same button (unsupported browser) | Falls back to `<input type="file" webkitdirectory multiple>` |
+| Click a strip item / `←` `→` | Switch photo — reads its EXIF again and repaints the canvas |
+| `Name ↑` / `Name ↓` | Sort by path (numeric-aware) |
+| Strip header | Collapse / expand |
+| Export tab → `Save all (N)` | Renders each photo with its own EXIF and saves them in order, with progress |
 
-- 사진을 넘겨도 **사용자가 고른 프레임·여백·엠블럼·서체 설정은 그대로 유지**됩니다.
-  (EXIF·프레임 번호만 새 사진 값으로 갱신)
-- 썸네일은 캔버스로 168px 축소본을 만들어 **화면에 보이는 것만 한 장씩 지연 디코딩**합니다.
-  폴더에 수백 장이 있어도 첫 장이 늦게 뜨지 않습니다.
-- 핸들과 파일은 브라우저 메모리에만 있습니다. 업로드는 여전히 **0 B** 입니다.
+- Switching photos **keeps the frame, margins, emblem and typeface you chose** (only EXIF values and frame
+  numbers come from the new photo).
+- Thumbnails are 168px canvas copies, **lazily decoded one at a time only when visible**, so a folder of
+  hundreds does not delay the first photo.
+- Handles and files live only in browser memory. Uploads are still **0 B**.
 
-## 시그니처 프레임 13종
+## The 13 signature frames
 
-원류 프로젝트 `jeonghyeon-net/exif-frame`의 모든 테마 스타일을 HD2Lab 독자 네이밍으로 옮겼습니다.
+All the theme styles of the origin project `jeonghyeon-net/exif-frame` are carried over under HD2Lab naming.
 
-| # | 프레임 | 원류 테마 | 특징 |
+| # | Frame | Origin theme | Character |
 | --- | --- | --- | --- |
-| 01 | **Clean Horizon** | `SIMPLE` | 최소 여백 · 제조사/모델 강약 대비 · 하단 1열 노출 스펙 |
-| 02 | **Classic Gallery** | `ONE_LINE` | 화이트 매트 · 중앙 엠블럼 · 1열 스펙 · 세리프 서명 |
-| 03 | **Dual Deck** | `TWO_LINE` | 상단 카메라·렌즈, 하단 조리개·셔터·ISO 2열 정렬 |
-| 04 | **Strap Bar** | `STRAP` | 카메라 넥스트랩 감성의 와이드 밴드 · 스티치 디테일 · 좌우 2단 |
-| 05 | **Film Sprocket** | `FILM` | 상하 35mm 퍼포레이션 · 필름 스톡 뱃지 · 프레임 번호 · 엠블럼 아래 메타 4줄 · ISO/SEC/F 세로 스택 |
-| 06 | **Studio Dark** | `LIGHTROOM` | 다크 매트 `#101110` · 오렌지 레일/코너 브래킷 · 모노 메타 |
-| 07 | **Minimal Edge** | `CUSTOM_ONE_LINE` | 사진 밀착 슬림 보더 · 한 줄 트래킹 메타 |
-| 08 | **Pro Studio** | `CUSTOM_TWO_LINE` | 넉넉한 밴드 · 비율 자유 조절 · 풀 스펙 2×2 격자 |
-| 09 | **Instant Polaroid** | — | 하단 친 넉넉한 즉석사진 카드 · 손글씨 캡션 자리 |
-| 10 | **Frosted Glass** | — | 사진이 여백으로 비치는 프로스트 유리 · 유리 밴드 |
-| 11 | **Editorial Cover** | — | 사진 위 마스트헤드 · 잡지 커버 리듬 |
-| 12 | **Contact Sheet** | — | 2×2 콘택트 시트 · 3:2 칸 네 장 (멀티컷) |
-| 13 | **FYRA 04** | — | 북유럽 4컷 스트립 · 6테마 (1×4 / 2×2, 멀티컷) |
+| 01 | **Clean Horizon** | `SIMPLE` | Minimal margin · make/model contrast · one-line exposure spec at the bottom |
+| 02 | **Classic Gallery** | `ONE_LINE` | White mat · centred emblem · one spec line · serif signature |
+| 03 | **Dual Deck** | `TWO_LINE` | Camera and lens on top, aperture/shutter/ISO in two columns below |
+| 04 | **Strap Bar** | `STRAP` | A wide camera-neck-strap band · stitch detail · two columns left and right |
+| 05 | **Film Sprocket** | `FILM` | 35mm perforations top and bottom · film-stock badge · frame number · four meta lines under the emblem · vertical ISO/SEC/F stack |
+| 06 | **Studio Dark** | `LIGHTROOM` | Dark `#101110` mat · orange rail and corner brackets · mono meta |
+| 07 | **Minimal Edge** | `CUSTOM_ONE_LINE` | Slim border tight to the photo · one tracked meta line |
+| 08 | **Pro Studio** | `CUSTOM_TWO_LINE` | Generous band · free ratio · full spec in a 2×2 grid |
+| 09 | **Instant Polaroid** | — | Wide instant-photo card at the bottom · a handwritten caption slot |
+| 10 | **Frosted Glass** | — | Frosted glass that shows the photo through the margin · glass band |
+| 11 | **Editorial Cover** | — | Masthead over the photo · magazine cover rhythm |
+| 12 | **Contact Sheet** | — | 2×2 contact sheet · four 3:2 cells (multi-cut) |
+| 13 | **FYRA 04** | — | Nordic four-cut strip · six themes (1×4 / 2×2, multi-cut) |
 
-### 멀티컷 · 4칸 슬롯
+### Multi-cut and the four slots
 
-앞의 11종은 한 장, 마지막 두 종은 **네 장**으로 한 플레이트를 만듭니다. `state.slots`가 사진을
-네 칸까지 들고, **0번 칸이 `state.photo`로 비칩니다** — EXIF 시트·단일컷 프레임·내보내기가
-두 벌 구현 없이 같은 사진을 봅니다.
+The first 11 use one photo; the last two build one plate from **four**. `state.slots` holds up to four photos
+and **slot 0 doubles as `state.photo`** — the EXIF sheet, single-cut frames and export all see the same photo
+without a second implementation.
 
-| 함수 | 하는 일 |
+| Function | What it does |
 | --- | --- |
-| `loadSlots(files)` | 사진 4장을 한 번에 네 칸에 (`사진 4장`) |
-| `setSlotFile(i, file)` | 한 칸만 교체 (칸을 탭) |
-| `swapSlots(a, b)` | 두 칸 맞바꾸기 (`⇄`) |
-| `seedSlots()` | 이미 열린 사진 한 장으로 빈 칸 채우기 |
-| `loadSampleSlots()` | 번들 샘플로 네 칸 채우기 |
+| `loadSlots(files)` | Put four photos into the four slots at once (`photos 4`) |
+| `setSlotFile(i, file)` | Replace one slot (tap the cell) |
+| `swapSlots(a, b)` | Swap two slots (`⇄`) |
+| `seedSlots()` | Fill empty slots with the photo already open |
+| `loadSampleSlots()` | Fill all four from the bundled samples |
 
-네 칸은 스테이지 위의 **플로팅 `▦ 4` 버튼**(우하단 12px)으로 열고 닫습니다. 열면 버튼 위로
-**4컷 슬롯 패널**(`#slotBar`, 우하단 66px · 640px 이하에서는 전체 폭 시트)이 뜨고, 바깥 탭 · 버튼
-재탭 · `Escape`로 접힙니다. 멀티컷 플레이트에서는 단일 사진용 `.session` 스트립이 숨고,
-단일컷 프레임으로 돌아오면 다시 나타납니다.
+The four slots open and close with the **floating `▦ 4` button** on the stage (12px from the bottom right).
+Open, the **four-cut slot panel** (`#slotBar`, 66px from the bottom right; a full-width sheet at 640px and
+below) appears above the button, and it closes on an outside tap, by tapping the button again, or with
+`Escape`. On multi-cut plates the single-photo `.session` strip hides and returns when you switch back to a
+single-cut frame.
 
-### FYRA 04 — 다시 눌러 테마
+### FYRA 04 — tap again for themes
 
-FYRA 04 타일은 **첫 탭에 선택**, **두 번째 탭에 테마 창**(`#fyraModal`)을 엽니다. 테마를 고르면
-바로 적용되고 창이 닫히며, `Escape`는 타일로 포커스를 돌려줍니다. 뱃지는 서로 겹치지 않습니다 —
-`NORDIC 4-CUT`은 썸네일 우상단, `다시 눌러 테마`(랜딩은 `6 THEMES`)는 좌하단.
+The FYRA 04 tile is **selected on the first tap** and opens its **theme window** (`#fyraModal`) on the
+**second**. Choosing a theme applies it and closes the window; `Escape` returns focus to the tile. Badges never
+overlap — `NORDIC 4-CUT` top-right of the thumbnail, `tap again for themes` (or `6 THEMES` on the landing)
+bottom-left.
 
-| id | 테마 | 레이아웃 |
+| id | Theme | Layout |
 | --- | --- | --- |
-| `classic` | Classic Strip | 1×4 아이보리 스트립 + FYRA 04 / 날짜 / 엠블럼 |
-| `nordic` | Nordic Grid | 2×2 오프화이트 격자 + 에디토리얼 여백 |
-| `dark` | Dark Studio | 1×4 매트 다크 스트립 + 오렌지 액센트 |
-| `film` | Film Strip | 1×4 퍼포레이션 + #01~#04 프레임 번호 |
-| `editorial` | Editorial Grid | 2×2 세리프 마스트헤드 + 매거진 격자 |
-| `minimal` | Minimal Twin | 2×2 헤어라인 + 한 줄 엠블럼·날짜 |
+| `classic` | Classic Strip | 1×4 ivory strip + FYRA 04 / date / emblem |
+| `nordic` | Nordic Grid | 2×2 off-white grid + editorial margins |
+| `dark` | Dark Studio | 1×4 dark mat strip + orange accent |
+| `film` | Film Strip | 1×4 perforations + #01~#04 frame numbers |
+| `editorial` | Editorial Grid | 2×2 serif masthead + magazine grid |
+| `minimal` | Minimal Twin | 2×2 hairline + a single emblem/date line |
 
-### 캡션 글자체 — 프레임 기본 / 커스텀
+### Caption typeface — frame default or custom
 
-`Caption / Photographer` 입력 아래 토글에서 **프레임 기본**이면 각 프레임이 원래 쓰는 서체를
-그대로 씁니다. **커스텀**을 누르면 `Sans · Serif · Mono · 필기체(Caveat)` 칩과 `볼드` · `이탤릭`
-체크박스가 열리고, 캡션 줄만 그 서체로 다시 그려집니다(제조사·노출·날짜는 프레임 서체 유지).
-다시 **프레임 기본**을 누르면 원래 서체로 돌아갑니다.
+Under the `Caption / Photographer` fields, **Frame default** keeps each frame's own typeface. **Custom** reveals
+`Sans · Serif · Mono · Script (Caveat)` chips plus `bold` and `italic` checkboxes, and repaints the caption line
+only in that face (maker, exposure and date keep the frame's face). Pressing **Frame default** again restores
+the original.
 
-프레임/여백 시트에서 보더 패딩 · 하단 밴드 · 라운딩 · **플레이트 비율(Auto·1:1·4:5·5:4·3:2·16:9)** ·
-필름 스톡 · 서체를 조정할 수 있고, 스타일을 바꾸면 해당 프레임의 기본값으로 리셋됩니다.
+The Frame/margin sheet controls border padding, bottom band, rounding, **plate ratio (Auto · 1:1 · 4:5 · 5:4 ·
+3:2 · 16:9)**, film stock and typeface; changing the style resets to that frame's defaults.
 
-### 텍스트 맞춤 규칙
+### Text fitting rules
 
-모든 프레임은 같은 한 줄 맞춤 규칙을 씁니다 — 좁아지면 먼저 **자간 → 크기** 순으로 줄이고,
-최대 45%까지 자연 축소한 뒤에야 마지막 수단으로 `…`를 붙입니다. 그래서 세로 사진(2:3·3:4)이나
-아이폰의 긴 렌즈명·환산 화각(`24mm (24mm)`)에서도 노출 스펙이 잘리지 않습니다.
+Every frame uses the same one-line fitting rule: as space narrows it first tightens tracking, then shrinks the
+size, down to 45% of natural size, and only then adds an ellipsis. So the exposure spec survives vertical
+photos (2:3, 3:4) and long iPhone lens names or equivalent focal lengths (`24mm (24mm)`).
 
-좌우 2단으로 나뉘는 프레임(Studio Dark · Strap Bar · Film Sprocket · Pro Studio · Minimal Edge)은
-오른쪽 열을 먼저 실측하고 남은 폭을 왼쪽 열에 배분합니다. 엠블럼 폭(브랜드 로고는 Apple 0.8:1부터 Hasselblad 12.8:1까지)도
-가용 폭에서 빼고, 프레임마다 엠블럼 최대 폭을 정해 두기 때문에 넓은 엠블럼과 긴 스펙이 겹치지 않습니다.
-Film Sprocket의 두 퍼포레이션 줄은 각자 **가장자리와 자기 실선 사이의 레일**을 차지하고, 구멍은 그 레일의 정중앙에 놓입니다.
-두 레일의 높이가 같으므로 위아래 여백은 **완전한 거울 대칭**(가장자리↔구멍 간격 === 구멍↔실선 간격)이 되고,
-실선 아래 남은 띠(`flow`)를 인화 블록으로 삼아 날짜 줄이 실선에도 구멍에도 닿지 않습니다.
-스톡 뱃지는 상단 레일과 사진 사이 띠의 정중앙에 놓입니다.
-하단 인화 블록은 **엠블럼을 왼쪽 끝에 두고 그 아래로 캡션·카메라·렌즈·날짜가 한 줄씩** 서며(모두 같은 왼쪽 끝 `pad`),
-반대쪽 아래 모서리에는 `ISO · SEC · F`가 **세로 스택**으로 우측 정렬됩니다.
-오른쪽 스택을 먼저 실측해 폭을 빼고 남은 폭을 왼쪽 블록에 배분하므로, 세로 사진에서도 두 열이 만나지 않습니다.
-보더 패딩을 0%로 낮춰도 퍼포레이션·필름 뱃지가 사라지지 않도록 Film Sprocket과 Dual Deck은
-상단 여백에 최소 높이를 보장하고, 레일 높이는 그 여백의 56%를 넘지 않게 잡아 뱃지가 설 자리를 남깁니다.
+Frames with two columns (Studio Dark · Strap Bar · Film Sprocket · Pro Studio · Minimal Edge) measure the right
+column first and give the remaining width to the left. The emblem width (brand marks run from Apple at 0.8:1 up
+to Hasselblad at 12.8:1) is subtracted from the available width too, and each frame caps its emblem width, so
+wide emblems and long specs never collide.
 
-Strap Bar의 바는 사진 높이의 12%만 차지하는 슬림 밴드입니다 — 두 줄이 위쪽에 붙어 있고 스티치가 바닥을 닫아,
-사진 바로 아래 여백과 마지막 줄 아래 여백이 모두 좁습니다. 바닥 스티치 위 우측에 `HD2LAB · STRAP 04` 워터마크가
-점선을 피해 놓입니다.
+Film Sprocket's two perforation rows each take the **rail between the edge and their own rule line**, and the
+holes sit at the exact centre of that rail. Because both rails have the same height, the top and bottom margins
+are a **perfect mirror** (edge-to-hole gap === hole-to-rule gap), and the strip left below the rule (`flow`)
+becomes the print block, so the date line touches neither the rule nor the holes. The stock badge sits in the
+centre of the band between the top rail and the photo.
 
-### 밴드 다이어트 (2026-11-14) — 세 프레임만
+The bottom print block puts the **emblem at the left edge with caption, camera, lens and date each on its own
+line below it** (all sharing the same left `pad`), while `ISO · SEC · F` sit in a **vertical stack** at the
+opposite bottom corner, right-aligned. The right stack is measured first and its width subtracted, so the two
+columns never meet even on vertical photos. So that perforations and the film badge do not vanish at 0% border
+padding, Film Sprocket and Dual Deck keep a minimum top margin, and the rail height is capped at 56% of that
+margin to leave room for the badge.
 
-세 프레임의 하단 밴드를 줄이고 그 안의 줄을 다시 앉혔습니다. 밴드는 사진 높이 대비
-**Classic Gallery 17→13% · Dual Deck 21→13.5% · Studio Dark 15.5→11.5%**,
-보더 패딩은 Gallery 7→4.5% · Dual 5.5→3.8% · Studio 5.5→3.8%입니다.
-**Film Sprocket(6 / 16%)과 Pro Studio(8 / 25%)은 직전 계약으로 되돌렸습니다** — 퍼포레이션
-레일 대칭과 2×2 스펙 격자는 그 배치 안에서 이미 완성돼 있어, 밴드를 줄이면 오히려 두 프레임의
-인화 리듬이 무너지기 때문입니다.
-밴드가 얇아지면 같은 비율의 폰트 상한이 글자를 함께 줄여 버리므로, 각 줄은 **새 밴드에 맞는 상한**을 따로 갖습니다.
+Strap Bar's bar is a slim band taking only 12% of the photo height — both lines ride at the top and the stitch
+closes the bottom, so the margin right under the photo and the margin under the last line are both tight. The
+`HD2LAB · STRAP 04` watermark sits above the bottom stitch on the right, clear of the dashed line.
 
-- **Classic Gallery** — 엠블럼 0.075 · 스펙 0.40 · 실선 0.53 · 세리프 서명 0.685 · 날짜 0.855.
-  엠블럼 높이는 바로 아래 스펙 줄의 올라온 높이까지로 제한되어 12.8:1 워드마크도 닿지 않습니다.
-- **Dual Deck** — 구분선 0.13 · 노출 0.42 · 초점거리·날짜 0.66 · 캡션 0.86.
-- **Studio Dark** — 레일 0.11 · 엠블럼·바디·스펙 한 줄 0.44 · 렌즈·날짜 0.63.
-  하단 푸터는 코너 브래킷의 가로 팔 **위로** 올라가고(브래킷은 밴드에 맞춰 작아집니다) 브래킷의 세로 팔 오른쪽에서 시작합니다.
+### Band diet (2026-11-14) — three frames only
 
-## 구조
+Three frames got shorter bottom bands with their lines re-seated. Against the photo height the bands went
+**Classic Gallery 17→13% · Dual Deck 21→13.5% · Studio Dark 15.5→11.5%**, and border padding went Gallery
+7→4.5% · Dual 5.5→3.8% · Studio 5.5→3.8%. **Film Sprocket (6 / 16%) and Pro Studio (8 / 25%) were reverted to
+the previous contract** — their perforation-rail symmetry and 2×2 spec grid are already complete in that
+placement, and a shorter band would break their print rhythm.
+Because a thinner band also shrinks the same-ratio font cap, each line has its **own cap for the new band**.
+
+- **Classic Gallery** — emblem 0.075 · spec 0.40 · rule 0.53 · serif signature 0.685 · date 0.855. The emblem
+  height is capped at the raised height of the spec line below it, so even a 12.8:1 wordmark does not touch it.
+- **Dual Deck** — divider 0.13 · exposure 0.42 · focal length and date 0.66 · caption 0.86.
+- **Studio Dark** — rail 0.11 · emblem/body/spec line 0.44 · lens and date 0.63. The bottom footer rises
+  **above** the corner brackets' horizontal arms (which shrink with the band) and starts to the right of their
+  vertical arms.
+
+## Structure
 
 ```
 PKPilot0003/
-├─ index.html              # 셸 · 인라인 SVG 아이콘 스프라이트(자체 제작)
-├─ style.css               # HD2Lab 다크 테크 UI (#101110 / #ff824f), 100dvh 컴팩트 레이아웃
-├─ app.js                  # 랜딩/편집기 뷰 전환 · 업로드·EXIF·프리뷰·프레임 스트립·PC 인스펙터/워크스페이스·⋮ 메뉴·내보내기 배선
+├─ index.html              shell · inline SVG icon sprite (hand-made)
+├─ style.css               Soft Iris / Navy & Lavender instrument shell, 100dvh compact layout
+├─ app.js                  landing/editor switching · upload · EXIF · preview · frame strip · desktop inspector/workspace · ⋮ menu · export wiring
 ├─ js/
-│  ├─ exif-core.js         # EXIF → 8개 필드 정규화 (순수 함수)
-│  ├─ emblems.js           # 공식 듀얼 스큐 마크 + 메이커 엠블럼 11종(제조사 공식 벡터) → SVG + Canvas 이중 렌더
-│  ├─ plate.js             # 13종 프레임 레이아웃·페인트 엔진 (프리뷰/스트립/내보내기 공용)
+│  ├─ exif-core.js         EXIF → 8 normalised fields (pure functions)
+│  ├─ emblems.js           11 emblems (maker marks + HD2Lab) → SVG and Canvas rendering
+│  ├─ plate.js             the 13-frame layout and paint engine (preview/strip/export share it)
 │  └─ vendor/exifr.full.umd.js
-├─ assets/samples/         # 데모용 샘플 3종 (EXIF 내장)
+├─ assets/hd2-theme.*      shared theme tokens and floating light/dark toggle
+├─ assets/samples/         three demo samples with embedded EXIF
+├─ beta/                   the previously promoted 13-frame build, still served at /beta/
 ├─ tools/
-│  ├─ generate_brand_assets.py   # 파비콘 세트 · OG 이미지 (공식 듀얼 스큐 마크)
-│  └─ make_samples.py            # 샘플 JPEG + EXIF 생성
-├─ tests/run_tests.py      # 정적 + 브라우저(Playwright) 검증
-├─ verify/                 # 배포본 실측 스크린샷
+│  ├─ generate_brand_assets.py   favicon set · OG image (official dual-skew mark)
+│  └─ make_samples.py            sample JPEGs + EXIF
+├─ tests/run_tests.py      static + browser (Playwright) checks
+├─ verify/                 deployment screenshots
 ├─ manifest.json
 └─ favicon.svg · favicon.ico · icon-192/512.png · apple-touch-icon.png · og-image.png
 ```
 
-### 렌더링 방식
+### How rendering works
 
-프리뷰·스트립 썸네일·내보내기는 **같은 페인트 루틴**을 같은 "플레이트 좌표계"에서 호출합니다.
-프리뷰는 `ctx.scale()`만 곱해 화면에 맞추고, 내보내기는 원본 1:1 해상도 캔버스에
-그대로 그립니다. 그래서 화면·썸네일·결과물의 서체·자간·여백이 어긋나지 않습니다.
+Preview, strip thumbnails and export call **the same paint routine in the same plate coordinate space**. The
+preview only multiplies `ctx.scale()` to fit the screen, while export draws into an original 1:1 canvas. That is
+why screen, thumbnail and result never disagree on typeface, tracking or margins.
 
-기기가 그만한 캔버스를 들지 못하면(예: iOS Safari의 캔버스 면적 제한) 조용히 실패하지 않고
-`4096 → 3072 → 2048px` 순으로 한 칸씩 내려가며 재시도합니다. 할당 거부(`getContext()` null,
-캔버스 치수 미적용)와 인코딩 실패(`toBlob` null·0바이트)를 모두 실패로 보고, 실제로 바이트가
-나온 단계만 저장합니다. 축소 저장된 경우 `기기 메모리 제한으로 4096px로 안전 저장했습니다`
-토스트로 알립니다.
+If the device cannot hold that canvas (for example iOS Safari's canvas area limit), it does not fail silently:
+it retries at `4096 → 3072 → 2048px`. Both allocation refusal (`getContext()` null, canvas dimensions not
+applied) and encoding failure (`toBlob` null, 0 bytes) count as failures, and only a stage that actually
+produced bytes is saved. When it saves a reduced size it says so with
+`device memory limit — saved safely at 4096px`.
 
-### 브랜딩
+### Branding
 
-헤더 로고·파비콘·플레이트의 `HD2Lab` 엠블럼은 모두 같은 공식 듀얼 스큐 마크를 씁니다.
+The header mark, the favicon and the `HD2Lab` emblem on plates all use the same official dual-skew mark.
 
 ```
-M15 20L35 10V43L15 53Z   M29 24L49 14V47L29 57Z   (stroke #ff824f)
+M15 20L35 10V43L15 53Z   M29 24L49 14V47L29 57Z
 ```
 
-## 메이커 엠블럼 11종
+The app chrome (header, panels, sheets, menu) follows the shared **Soft Iris** light theme and **Navy &
+Lavender** dark theme (`#FAFAFD` / `#8B6CE8` accent, `#0B1020` / `#A78BFA` dark), with the 44px floating toggle
+as the only theme switch; the plate stage keeps its own print colours. On plates the HD2Lab mark prints in the
+frame accent `#ff824f`, or in the frame ink when **All Black** is selected.
 
-`Sony · Canon · Nikon · Fujifilm · Samsung · Leica · Hasselblad · Apple · Lumix · OM System`
-열 곳의 엠블럼은 **제조사가 공개한 로고 벡터 원본**에서 가져온 path 데이터입니다. 글꼴로 글자를
-흉내 내지 않고, 원본 path를 그대로 옮긴 뒤 높이 100 단위로만 정규화했습니다
-(형태·비율은 원본 그대로). HD2Lab 마크는 프로젝트 브랜드 시트를 씁니다.
+## 11 maker emblems
 
-`엠블럼` 탭의 **엠블럼 색상** 스위치로 두 가지 인쇄를 고릅니다.
+`Sony · Canon · Nikon · Fujifilm · Samsung · Leica · Hasselblad · Apple · Lumix · OM System` plus the HD2Lab
+mark use **the manufacturer's own published logo vectors**. No font impressions: the original path data was
+moved over and only normalised to 100 units of height (shapes and proportions unchanged). The HD2Lab mark uses
+the project's brand sheet.
 
-- **원본 컬러**(기본) — 제조사 공식 색. Canon Red `#CC0000`, Leica Red `#E20613` 원형 뱃지,
-  Lumix Red `#E60012`, Fujifilm `#ED1A3D` 노치, Samsung Blue `#1428A0`, OM System Blue `#0033A0`.
-  어두운 프레임(Film Sprocket · Studio Dark)에서는 파란 계열만 `#3B6BFF` · `#4B83FF`로 올려
-  배경에 묻히지 않게 합니다. Sony · Nikon · Hasselblad · Apple은 원본이 단색 워드마크라 잉크.
-- **All Black (단색)** — HD2Lab 오렌지까지 포함해 모든 마크를 프레임의 잉크 한 색으로 인쇄합니다.
-  선택창 타일도 함께 단색으로 바뀌고, 내보내기 캐시 시그니처에 포함되어 즉시 반영됩니다.
+The **Emblem colour** switch in the `Emblem` tab chooses between two inks.
 
-각 로고의 원본 URL·라이선스·상표 고지와 색상 적용표는 [`EMBLEM-SOURCES.md`](EMBLEM-SOURCES.md)에 있습니다.
+- **Original colour** (default) — each manufacturer's official colour. Canon Red `#CC0000`, Leica Red `#E20613`
+  round badge, Lumix Red `#E60012`, Fujifilm `#ED1A3D` notch, Samsung Blue `#1428A0`, OM System Blue `#0033A0`.
+  On dark frames (Film Sprocket · Studio Dark) only the blues are lifted to `#3B6BFF` / `#4B83FF` so they do not
+  sink into the background. Sony, Nikon, Hasselblad and Apple are single-colour wordmarks, so they print in the
+  frame ink.
+- **All Black (single ink)** — every mark, HD2Lab's orange included, prints in the frame's one ink colour. The
+  picker tiles turn monochrome too, and the choice is part of the export cache signature so it applies at once.
 
-브랜드 폭이 Apple 0.8:1부터 Hasselblad 12.8:1까지 제각각이라, `plate.js`의 `emFit`이 프레임마다
-엠블럼 최대 폭을 정하고 넘치면 높이를 줄여 원본 비율을 지킵니다.
+Each logo's original URL, licence and trademark notice, plus the colour table, are in
+[`EMBLEM-SOURCES.md`](EMBLEM-SOURCES.md).
 
-## 내보내기 — 사진으로 저장
+Because brand widths differ from Apple's 0.8:1 to Hasselblad's 12.8:1, `emFit` in `plate.js` sets a maximum
+emblem width per frame and reduces the height when it would overflow, keeping the original proportions.
 
-`내보내기`는 한 장을 먼저 메모리에 렌더한 뒤 세 갈래로 내보냅니다.
+## Export — save as a photo
 
-1. **사진 앨범에 저장 / 공유** — `navigator.canShare({files})`가 참인 브라우저(iOS Safari·Android
-   Chrome)에서 Web Share API로 이미지 File을 넘깁니다. iOS 공유 시트에서 `이미지 저장`을 고르면
-   사진 앨범에 들어갑니다. 공유 시트를 그냥 닫으면 조용히 끝납니다.
-2. **파일로 내려받기** — 공유 시트가 없는 브라우저·데스크톱용 폴백(같은 파일명·포맷).
-   PC 인스펙터 도크의 `저장` 버튼이 이 경로를 바로 부릅니다.
-   워크스페이스에 2장 이상 열려 있으면 `전체 일괄 저장 (N장)`이 같은 렌더러로 사진마다
-   자기 EXIF·파일명을 붙여 차례로 저장합니다.
-3. **미리보기** — 결과 이미지를 전체 화면으로 띄웁니다. 길게 눌러 `사진 앱에 저장`을 고를 수 있고,
-   세로 스크롤은 생기지 않습니다.
+`Export` renders one plate into memory first and then exports it three ways.
 
-iOS는 탭 안에서만 공유 시트를 열 수 있어서, 내보내기 시트를 여는 순간 결과물을 미리 만들어 두고
-탭 한 번에 바로 넘깁니다. 설정이 바뀌어 미리 만든 결과가 낡았으면 결과 카드가 열리고 거기서 다시
-한 번 누르면 됩니다.
+1. **Save to photo album / share** — on browsers where `navigator.canShare({files})` is true (iOS Safari,
+   Android Chrome) the image File goes through the Web Share API. Choosing `Save image` in the iOS share sheet
+   puts it in the photo album; closing the sheet simply ends quietly.
+2. **Download as a file** — the fallback for browsers without a share sheet, and for desktop (same file name and
+   format). The `Save` button in the desktop inspector dock takes this route directly. With two or more photos in
+   the workspace, `Save all (N)` uses the same renderer to save each with its own EXIF and file name.
+3. **Preview** — shows the result full screen; a long press offers `Save to Photos`, and no vertical scrolling
+   appears.
 
-## 테스트
+iOS only allows a share sheet inside a tab, so opening the export sheet pre-renders the result and hands it over
+on one tap. If the settings changed and the prepared result is stale, the result card opens and one more tap
+renders again.
+
+Format is JPEG (quality 70–100, default 95) or lossless PNG, chosen in the Export panel or the desktop dock.
+
+## Tests
 
 ```bash
-python3 tests/run_tests.py        # -v 로 상세 출력
+python3 tests/run_tests.py        # -v for verbose output
 ```
 
-- **정적**: HTML 시맨틱(타이틀·viewport·OG), SVG 심볼 유효성, 자산 참조 무결성, 브랜드 자산 규격,
-  CSS 토큰, 100dvh·무스크롤 규칙, 16px 입력·44px 터치 타깃, **13종 프레임 정의**,
-  **정식 헤더에 BETA 뱃지·Production 링크 없음**, 4컷 슬롯·테마 창·캡션 토글 마크업,
-  CDN 미사용(필기체 폰트 시트 1건만 예외)
-- **브라우저**: 번들 샘플의 실제 EXIF 파싱, 포매터 단위 테스트, 13종 프레임의 선택·개별 렌더,
-  **텍스트 맞춤 매트릭스**(2:3·3:4·3:2 × 아이폰 긴 렌즈명/넓은 엠블럼/EXIF 없음 × **단일컷 11종 =
-  220장**에서 `…` 0건 · 플레이트 밖 이탈 0건 · 텍스트↔텍스트/엠블럼/퍼포레이션 겹침 0건,
-  `padPct: 0`에서도 퍼포레이션이 그려지는지),
-  **4컷 슬롯 모델**(4장 열기·한 칸 교체·두 칸 맞바꾸기·한 장으로 네 칸 시드·EXIF 재독 후 유지),
-  **플로팅 4컷 제어**(스테이지 우하단 12px 고정·패널이 버튼 위로·바깥 탭/Esc/재탭 닫기·포커스 복귀·
-  멀티컷에서 `.session` 숨김), **FYRA 04**(첫 탭 선택·두 번째 탭 6테마 창·여섯 테마가 각각 다른
-  1×4/2×2 플레이트·테마 적용 후 닫힘), **뱃지 분리**(스트립·랜딩 타일에서 `NORDIC 4-CUT` 우상단 ·
-  `다시 눌러 테마` 좌하단, 교차 면적 0), **캡션 글자체**(프레임 기본 ↔ 커스텀 · 4서체 · 볼드/이탤릭이
-  플레이트 opts까지 도달 · 커스텀은 캡션 줄만 바꿈), **4컷 1:1 내보내기**,
-  **정식 헤더**(390px에서 BETA 뱃지 없이 제품명 유지 · 액션 우측 고정 · 한 줄),
-  **Film Sprocket 대칭**(가로·세로·정사각 × 기본/0%/9% 여백에서 위·아래 구멍 높이·가장자리 거리 Δ0.5px 이내,
-  레일 높이 동일 · 각 구멍이 자기 레일 정중앙 · 그려진 구멍의 위/아래 간격 Δ0.5px 이내, 날짜 줄이 실선과
-  퍼포레이션 모두에서 떨어져 있는지, 스톡 뱃지가 레일과 사진 사이에 설 자리가 있는지),
-  **Strap Bar 여백**(가로·세로·정사각 × 기본 여백에서 바가 사진 높이의 13% 이하인지, 사진 아래 첫 줄까지의 여백과
-  스티치 위 여백이 좁은지, 스티치에 글자가 닿지 않는지),
-  **3종 밴드 다이어트 + 2종 원복**(Gallery·Dual·Studio의 geo 상수와 앱 기본값 일치, 세로·가로 사진에서 실제 밴드가
-  사진 높이의 13/13.5/11.5%인지, Film·Pro는 6/16·8/25 그대로인지),
-  **Film Sprocket 하단 배치**(캔버스에 실제로 찍힌 글자 상자를 기준으로 엠블럼 아래 메타 4줄이 모두 같은 왼쪽 끝을 쓰고
-  하단 퍼포레이션 실선 위에 있는지, ISO·SEC·F 세 쌍이 **세 개의 행**으로 우측 정렬되는지),
-  **Pro Studio 2×2 격자**(네 라벨이 두 줄·두 열에 `inner/2` 간격으로 서고, 값이 각자의 라벨 줄 아래에 오는지,
-  푸터 실선과 캡션이 그 아래인지),
-  **랜딩 · 타이틀 · ⋮ 메뉴**(첫 화면이 랜딩이고 편집기는 그 뒤에 있는지, 8장 카드가 각자 플레이트를 그리는지,
-  샘플 카드·프레임 카드가 그 사진·그 프레임으로 편집기를 여는지, 타이틀 클릭으로 랜딩에 돌아왔을 때 Active Session이
-  파일명·해상도·프레임을 보여주고 `계속 편집하기`가 상태를 유지하는지, ⋮ 메뉴의 WORKSPACE/SAMPLES/NAVIGATION 세 섹션과
-  EXIF 활성/비활성·엠블럼 색 토글·Escape 닫기·포커스 복귀·바깥 클릭 닫기, 390 폰에서 가로 오버플로 0),
-  **엠블럼 색상**(캔버스 픽셀로 Canon·Leica·Lumix Red, Samsung·OM System Blue, Fujifilm 노치 확인,
-  All Black에서 브랜드 색 0 · 전 마크 단일 잉크, 선택창 SVG 타일도 동일, 패널 토글 상태 반영),
-  스트립 선택/휠/키보드, 시트 열기·닫기, 업로드 전후 UI 전환,
-  **내보내기 해상도**(5200×3400 사진이 4096으로 잘리지 않고 원본 1:1로 저장,
-  `toBlob` null · `getContext` null 상황에서 4096px 폴백 저장 + 안내 토스트)·파일명,
-  **PC 1440 2단 스튜디오**(인스펙터 상시 표시·탭 전환·슬라이더 즉시 반영·도크 원클릭 저장),
-  **워크스페이스**(다중 선택·폴더 핸들 스캔·하위 폴더 옵션·썸네일·정렬·←/→ 전환 시 EXIF 갱신 &
-  프레임 설정 유지·접기·일괄 저장 3장), 1024px 아래 시트 경로 회귀, 900 태블릿 시트,
-  모바일 390/320 (가로 오버플로 0·세로 스크롤 0·한 줄 헤더·한 줄 세션 카드,
-  PC 전용 인스펙터·도크·워크스페이스가 휴대폰 레이아웃에 새지 않는지)
+- **Static**: HTML semantics (title, viewport, OG), SVG symbol validity, asset reference integrity, brand asset
+  specs, CSS tokens, 100dvh / no-scroll rules, 16px inputs and 44px touch targets, **the 13 frame definitions**,
+  **no BETA badge or production link in the production header**, four-cut slot, theme window and caption toggle
+  markup, no CDN use (one script-font sheet excepted)
+- **Browser**: real EXIF parsing of the bundled samples, formatter unit tests, selecting and individually
+  rendering all 13 frames, the **text fitting matrix** (2:3, 3:4, 3:2 × long iPhone lens names, wide emblems,
+  missing EXIF × the 11 single-cut frames = 220 plates with 0 ellipses, 0 escapes from the plate, 0
+  text/text, text/emblem or text/perforation overlaps, and perforations drawn even at `padPct: 0`),
+  **the four-cut slot model** (open four, replace one, swap two, seed four from one, keep slots after re-reading
+  EXIF), **the floating four-cut control** (fixed 12px from the stage's bottom right, panel above the button,
+  closing by outside tap/Esc/re-tap, focus return, `.session` hidden on multi-cut), **FYRA 04** (first tap selects,
+  second opens the six-theme window, each of the six paints a different 1×4/2×2 plate, window closes on apply),
+  **badge separation** (`NORDIC 4-CUT` top-right and `tap again for themes` bottom-left in the strip and the
+  landing tile, zero overlap area), **caption typeface** (frame default ↔ custom, four faces, bold/italic reaching
+  the plate opts, custom changing the caption line only), **four-cut 1:1 export**,
+  **the production header** (product name kept without a BETA badge at 390px, actions pinned right, one line),
+  **Film Sprocket symmetry** (horizontal, vertical and square × default/0%/9% margin: top and bottom hole height
+  and edge distance within 0.5px, equal rail heights, each hole centred in its own rail, painted holes' top/bottom
+  gaps within 0.5px, the date line clear of both the rule and the perforations, room for the stock badge between
+  rail and photo), **Strap Bar margins** (bar at most 13% of the photo height in all orientations at default
+  padding, tight margins above the first line below the photo and above the stitch, text never touching the
+  stitch), **the three-frame band diet + two reverts** (Gallery/Dual/Studio geo constants matching the app
+  defaults, real bands at 13/13.5/11.5% of photo height in portrait and landscape, Film/Pro still 6/16 and 8/25),
+  **Film Sprocket bottom block** (from painted glyph boxes: all four meta lines under the emblem share the same
+  left edge and sit above the bottom perforation rule, and the ISO/SEC/F pairs are right-aligned in **three rows**),
+  **Pro Studio 2×2 grid** (four labels in two rows and two columns at `inner/2` spacing, values under their labels,
+  footer rule and caption below it), **landing · title · ⋮ menu** (landing first and the editor behind it, all 13
+  cards painting their own plate, sample and frame cards opening the editor with that photo and frame, the title
+  returning to the landing with an Active session that shows file name, resolution and frame and a `Continue
+  editing` that keeps state, the WORKSPACE/SAMPLES/NAVIGATION sections with EXIF enable/disable, the emblem colour
+  toggle, Escape close with focus return, outside-click close, and zero horizontal overflow at 390), **emblem
+  colour** (canvas pixels confirming Canon/Leica/Lumix red, Samsung/OM System blue and the Fujifilm notch, zero
+  brand colours under All Black, every mark in one ink, the picker SVG tiles the same, the panel toggle state
+  reflected), strip selection/wheel/keyboard, opening and closing sheets, UI before and after upload,
+  **export resolution** (a 5200×3400 photo saved at original 1:1 instead of being cut to 4096, a 4096px fallback
+  save with a notice toast when `toBlob`/`getContext` return null) and file name, **the 1440 desktop two-column
+  studio** (inspector always visible, tab switching, sliders applying at once, one-click dock save), **workspace**
+  (multi-select, folder handle scan, subfolder option, thumbnails, sorting, EXIF refresh and frame settings kept on
+  `←`/`→`, collapse, three-photo bulk save), the sheet path regression below 1024px, the 900 tablet sheet, and
+  mobile 390/320 (zero horizontal overflow, zero vertical page scroll, one-line header, one-line session card, and
+  no desktop-only inspector, dock or workspace leaking into the phone layout)
 
-Playwright/Chromium이 없는 환경에서는 브라우저 계층만 SKIP하고 나머지로 판정합니다.
+On a machine without Playwright/Chromium the browser layer is SKIPped and the rest decides the result.
 
-## 샘플 사진
+## Sample photos
 
-`assets/samples/`의 3장은 이 프로젝트를 위해 생성한 데모 프레임에 EXIF(SONY / FUJIFILM / Canon)를
-심은 것입니다. 실제 촬영물이 아니며, 앱 동작 시연용입니다.
+The three files in `assets/samples/` are generated demo frames with EXIF (SONY / FUJIFILM / Canon) embedded. They
+are not real photographs; they exist to demonstrate the app.
 
-## 브랜딩 자산 재생성
+## Regenerating brand assets
 
 ```bash
 python3 tools/generate_brand_assets.py
-python3 tools/make_samples.py --src-dir <샘플 원본 PNG 폴더>
+python3 tools/make_samples.py --src-dir <folder of source PNG samples>
 ```
 
-HD2Lab 표준: 다크 `#101110`, 오렌지 `#ff824f`, 파비콘 SVG/ICO/32/180/192/512, OG 1200×630.
+HD2Lab standard: favicon SVG/ICO/32/180/192/512 and a 1200×630 OG card, with the dual-skew mark.
