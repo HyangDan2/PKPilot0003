@@ -38,19 +38,21 @@ photo, frame, margins and emblem stay as they were, so `Continue editing` picks 
 Every control fits one 100dvh screen. There is no vertical page scroll.
 
 1. **Canvas** — the live plate preview. Wheel/pinch zoom, drag to pan, dark/light plate background.
-   No bar overlays the canvas: the viewport runs from just under the header to just above the file bar.
-2. **One-line file bar** — with no photo it holds the drop box inside the canvas plus `Load sample photo`;
-   with a photo it shows **thumbnail · file name · resolution · EXIF chip · `Change` / `Clear`** on one line.
-   Opening files is the header's job (`Open files` · `Open folder` · `Sample` · `Save` · `⋮`).
-3. **FRAME LIBRARY** — a horizontal slider under the file bar with live miniatures of the 13 frames, name and
+   No bar overlays the canvas: the viewport runs from just under the header down to the frame library.
+2. **Frame library head** — the loaded photo's identity: **file name · resolution · EXIF count**, the file name
+   taking the slot the `FRAME LIBRARY` label used to keep (`…` for a long name, so the row never breaks).
+   With no photo open the slot falls back to `FRAME LIBRARY`. Opening files is the header's job
+   (`Open files` · `Open folder` · `Image` · `Sample` · `Save` · `⋮`), and `⋮ → Clear photo` empties the plate.
+3. **FRAME LIBRARY** — a horizontal slider under the stage with live miniatures of the 13 frames, name and
    feature badge; move with the wheel, drag, swipe or `←`/`→`, and a tap applies the frame instantly with an
-   accent ring on the selected card. The strip header on the right holds **preview background (dark/light) and
-   zoom (out · fit · in)** — the old canvas toolbar's work, now at the bottom.
+   accent ring on the selected card. The compact shelf (56px thumbnails on a phone, 74px on a PC) leaves the
+   plate the height the old file bar used to take. The strip header on the right holds **preview background
+   (dark/light) and zoom (out · fit · in)** — the old canvas toolbar's work, now at the bottom.
 4. **Tool bar** — `EXIF edit` · `Frame/margin` · `Emblem` · `Export`. Collapsed by default; tapping one raises
    only that control panel as a sheet (bottom sheet on mobile, closed with Esc or the backdrop).
 5. **Light/Dark floating toggle** — the single shared button at the bottom right is the only theme switch. In
-   the editor it sits 8px above the top edge of the bottom control panels (file bar · frame library · workspace
-   strip · tool bar) and moves aside to the left of the `4-cut` button on four-cut plates. When a panel changes
+   the editor it sits 8px above the top edge of the bottom control panels (frame library · workspace strip ·
+   tool bar) and moves aside to the left of the `4-cut` button on four-cut plates. When a panel changes
    height (frame card, workspace, safe area) the offset is measured again and it re-attaches.
 
 ### Desktop (≥ 1024px) — a two-column studio
@@ -138,8 +140,7 @@ without a second implementation.
 The four slots open and close with the **floating `▦ 4` button** on the stage (12px from the bottom right).
 Open, the **four-cut slot panel** (`#slotBar`, 66px from the bottom right; a full-width sheet at 640px and
 below) appears above the button, and it closes on an outside tap, by tapping the button again, or with
-`Escape`. On multi-cut plates the single-photo `.session` strip hides and returns when you switch back to a
-single-cut frame.
+`Escape`. On multi-cut plates the library head keeps naming the photo while the four cells live in the panel.
 
 ### FYRA 04 — tap again for themes
 
@@ -318,7 +319,7 @@ python3 tests/run_tests.py        # -v for verbose output
   text/text, text/emblem or text/perforation overlaps, and perforations drawn even at `padPct: 0`),
   **the four-cut slot model** (open four, replace one, swap two, seed four from one, keep slots after re-reading
   EXIF), **the floating four-cut control** (fixed 12px from the stage's bottom right, panel above the button,
-  closing by outside tap/Esc/re-tap, focus return, `.session` hidden on multi-cut), **FYRA 04** (first tap selects,
+  closing by outside tap/Esc/re-tap, focus return), **FYRA 04** (first tap selects,
   second opens the six-theme window, each of the six paints a different 1×4/2×2 plate, window closes on apply),
   **badge separation** (`NORDIC 4-CUT` top-right and `tap again for themes` bottom-left in the strip and the
   landing tile, zero overlap area), **caption typeface** (frame default ↔ custom, four faces, bold/italic reaching
@@ -347,8 +348,9 @@ python3 tests/run_tests.py        # -v for verbose output
   studio** (inspector always visible, tab switching, sliders applying at once, one-click dock save), **workspace**
   (multi-select, folder handle scan, subfolder option, thumbnails, sorting, EXIF refresh and frame settings kept on
   `←`/`→`, collapse, three-photo bulk save), the sheet path regression below 1024px, the 900 tablet sheet, and
-  mobile 390/320 (zero horizontal overflow, zero vertical page scroll, one-line header, one-line session card, and
-  no desktop-only inspector, dock or workspace leaking into the phone layout)
+  mobile 390/320 (zero horizontal overflow, zero vertical page scroll, one-line header, a compact frame
+  library whose head carries the file name, and no desktop-only inspector, dock or workspace leaking into the
+  phone layout)
 
 On a machine without Playwright/Chromium the browser layer is SKIPped and the rest decides the result.
 

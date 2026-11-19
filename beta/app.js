@@ -117,19 +117,16 @@
     stageCanvas: $('#stageCanvas'),
     canvas: $('#plateCanvas'),
     empty: $('#emptyState'),
-    styleChip: $('#styleChip'),
-    renderChip: $('#renderChip'),
     zoomLabel: $('#zoomLabel'),
     fileInput: $('#fileInput'),
     dropzone: $('#dropzone'),
-    sessionCard: $('#sessionCard'),
     stripSection: $('.strip'),
     toolbarEl: $('#toolbar'),
-    sessionThumb: $('#sessionThumb'),
-    metaName: $('#metaName'),
-    metaSize: $('#metaSize'),
-    metaBytes: $('#metaBytes'),
-    metaExif: $('#metaExif'),
+    /* the frame library's head line: the loaded photo's filename and its
+       resolution / EXIF count stand where the FRAME LIBRARY label used to */
+    libName: $('#libName'),
+    libMeta: $('#libMeta'),
+    headerOpenBtn: $('#headerOpenBtn'),
     strip: $('#frameStrip'),
     frameCount: $('#frameCount'),
     emblemGrid: $('#emblemGrid'),
@@ -188,6 +185,8 @@
     menuHomeBtn: $('#menuHomeBtn'),
     menuResetExifBtn: $('#menuResetExifBtn'),
     menuResetHint: $('#menuResetHint'),
+    menuClearBtn: $('#menuClearBtn'),
+    menuClearHint: $('#menuClearHint'),
     menuEmblemBtn: $('#menuEmblemBtn'),
     menuEmblemHint: $('#menuEmblemHint'),
     menuEmblemState: $('#menuEmblemState'),
@@ -568,7 +567,9 @@
     var p = state.photo;
     if (!p) {
       el.empty.hidden = false;
-      el.sessionCard.hidden = true;
+      /* no photo open: the library head keeps its own name */
+      if (el.libName) { el.libName.textContent = 'FRAME LIBRARY'; el.libName.removeAttribute('title'); }
+      if (el.libMeta) el.libMeta.textContent = '';
       el.downloadBtn.disabled = true;
       el.headerDownloadBtn.disabled = true;
       if (el.shareBtn) el.shareBtn.disabled = true;
@@ -580,35 +581,25 @@
       return;
     }
     el.empty.hidden = true;
-    /* a four-cut plate hides the single-photo strip: syncSlotUI owns the rule */
-    el.sessionCard.hidden = PL.isMulti(state.style);
-    el.metaName.textContent = p.name;
-    el.metaSize.textContent = p.w + ' × ' + p.h;
-    el.metaBytes.textContent = bytes(p.bytes);
-    el.metaExif.textContent = (tagCount || 0) + ' tags';
+    /* the library's head is the photo's identity now: the filename bar under the
+       stage is gone, so the name, its resolution and its EXIF count ride here.
+       A long name ellipsises instead of pushing the view controls off the row. */
+    if (el.libName) {
+      el.libName.textContent = p.name;
+      el.libName.title = p.name;
+    }
+    if (el.libMeta) {
+      el.libMeta.textContent = p.w + ' × ' + p.h + ' · ' + (tagCount || 0) + ' tags';
+      el.libMeta.title = bytes(p.bytes);
+    }
     el.downloadBtn.disabled = false;
     el.headerDownloadBtn.disabled = false;
     if (el.shareBtn) el.shareBtn.disabled = false;
     if (el.previewBtn) el.previewBtn.disabled = false;
     $('#resetMetaBtn').disabled = false;
-    paintSessionThumb();
     syncMenuState();
     syncHomeSession();
     scheduleThemeToggle();
-  }
-
-  function paintSessionThumb() {
-    var cv = el.sessionThumb;
-    if (!cv) return;
-    var size = 72, ctx = cv.getContext('2d');
-    ctx.clearRect(0, 0, size, size);
-    if (!state.photo) return;
-    var src = state.photo.preview;
-    var w = src.naturalWidth || src.width, h = src.naturalHeight || src.height;
-    var k = Math.max(size / w, size / h);
-    var dw = w * k, dh = h * k;
-    ctx.imageSmoothingQuality = 'high';
-    ctx.drawImage(src, (size - dw) / 2, (size - dh) / 2, dw, dh);
   }
 
   /* ── landing (home view) ──────────────────────────────────────────────────
@@ -740,7 +731,7 @@
       t.style.removeProperty('--hd2-toggle-bottom');
       return;
     }
-    var panels = [el.sessionCard, el.stripSection, el.wsStrip, el.toolbarEl];
+    var panels = [el.stripSection, el.wsStrip, el.toolbarEl];
     var top = null;
     panels.forEach(function (node) {
       if (!node || node.hidden) return;
@@ -781,6 +772,15 @@
       el.menuResetExifBtn.disabled = !has;
       if (el.menuResetHint) {
         el.menuResetHint.textContent = has ? '사진을 열 때 읽은 EXIF로' : '사진을 열면 쓸 수 있습니다';
+      }
+    }
+    if (el.menuClearBtn) {
+      var hasPhoto = !!state.photo;
+      el.menuClearBtn.disabled = !hasPhoto;
+      if (el.menuClearHint) {
+        el.menuClearHint.textContent = hasPhoto
+          ? '지금 연 사진과 EXIF 값을 비웁니다'
+          : '사진을 열면 쓸 수 있습니다';
       }
     }
     if (el.menuEmblemBtn) {
@@ -1148,10 +1148,8 @@
 
   function syncSlotUI() {
     var multi = PL.isMulti(state.style);
-    /* a multi-cut plate prints four photographs: the single-photo strip under
-       the stage has nothing left to say, and the four cells move to the plate's
-       own floating control. A single-cut frame brings the strip straight back. */
-    if (el.sessionCard) el.sessionCard.hidden = !state.photo || multi;
+    /* a multi-cut plate moves its four cells to the plate's own floating
+       control; the library head keeps naming the photo either way */
     if (!multi) state.slotOpen = false;
     scheduleThemeToggle();
     if (el.slotToggle) {
@@ -2231,10 +2229,8 @@
   function updateReadout(L) {
     var label = PL.STYLES[state.style].label;
     if (state.style === 'fyra04') label += ' · ' + PL.fyraTheme(state.fyraTheme).label;
-    el.styleChip.textContent = label.toUpperCase();
     el.exportStyle.textContent = label;
     if (!L) {
-      el.renderChip.textContent = '—';
       el.exportSize.textContent = '—';
       el.exportName.textContent = '—';
       if (el.dockSize) el.dockSize.textContent = '—';
@@ -2244,7 +2240,6 @@
     /* 1:1 — the frame is the photo plus its borders, so this is exactly what
        the file will measure unless the device has to step down. */
     var ow = L.W, oh = L.H;
-    el.renderChip.textContent = ow + ' × ' + oh;
     el.exportSize.textContent = ow + ' × ' + oh + ' px';
     el.exportName.textContent = EX.fileName(state.fields, state.format === 'png' ? 'png' : 'jpg');
     if (el.dockSize) el.dockSize.textContent = ow + ' × ' + oh + ' px';
@@ -2773,8 +2768,14 @@
 
     $('#headerSampleBtn').addEventListener('click', loadSample);
     $('#emptySampleBtn').addEventListener('click', loadSample);
-    $('#changeBtn').addEventListener('click', function () { el.fileInput.click(); });
-    $('#clearBtn').addEventListener('click', clearPhoto);
+    /* the header's image button is the way to a new photo in the studio: the
+       filename bar that used to carry 변경 went with the bar itself */
+    if (el.headerOpenBtn) {
+      el.headerOpenBtn.addEventListener('click', function () { el.fileInput.click(); });
+    }
+    if (el.menuClearBtn) {
+      el.menuClearBtn.addEventListener('click', function () { closeMenu(true); clearPhoto(); });
+    }
 
     // fields
     Object.keys(FIELD_INPUTS).forEach(function (k) {
@@ -3245,7 +3246,7 @@
       new ResizeObserver(render).observe(el.stageCanvas);
       /* the toggle rides the bottom panel, so it follows that panel's height */
       var dockObs = new ResizeObserver(scheduleThemeToggle);
-      [el.sessionCard, el.stripSection, el.wsStrip, el.toolbarEl].forEach(function (node) {
+      [el.stripSection, el.wsStrip, el.toolbarEl].forEach(function (node) {
         if (node) dockObs.observe(node);
       });
     }

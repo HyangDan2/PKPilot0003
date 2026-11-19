@@ -288,7 +288,8 @@ def static_tests():
     check("static: the dock offset is measured from that panel",
           "function syncThemeToggle" in beta_js
           and "setProperty('--hd2-toggle-bottom'" in beta_js
-          and "[el.sessionCard, el.stripSection, el.wsStrip, el.toolbarEl]" in beta_js)
+          and "[el.stripSection, el.wsStrip, el.toolbarEl]" in beta_js
+          and "el.sessionCard" not in beta_js)
     check("static: the studio keeps the toggle left of the fixed inspector on a PC",
           re.search(r"@media \(min-width: 1024px\) \{\s*body\[data-view=\"editor\"\] "
                     r"\.hd2-theme-toggle \{[^}]*--hd2-toggle-right: calc\(var\(--ins-w\) \+ 12px\)",
@@ -296,8 +297,9 @@ def static_tests():
     check("static: the toggle steps aside from the 4-cell control on the multi-cut plates",
           re.search(r'body\[data-view="editor"\]:has\(#slotToggle:not\(\[hidden\]\)\) '
                     r"\.hd2-theme-toggle \{[^}]*--hd2-toggle-right: 66px;", css, re.S) is not None)
-    check("static: the phone header keeps 샘플 out of the studio's way",
-          'body[data-view="editor"] #headerSampleBtn { display: none; }' in css)
+    check("static: the phone header hands 샘플's room to the image button",
+          '#headerSampleBtn { display: none; }' in css
+          and 'id="headerOpenBtn"' in hdr)
 
     # production is a different build and must stay that way
     prod_html = open(os.path.join(os.path.dirname(BETA), "index.html"), encoding="utf-8").read()
@@ -789,11 +791,13 @@ def browser_tests(port):
               page.is_visible("#slotToggle"))
         check("browser: the 4-cut panel stays down until it is asked for",
               page.is_hidden("#slotBar"))
-        check("browser: the single-photo strip is hidden on a multi-cut plate",
-              page.is_hidden("#sessionCard"))
-        check("browser: the session card keeps the slot's EXIF count",
-              page.inner_text("#metaExif").strip() != "0 tags",
-              page.inner_text("#metaExif").strip())
+        check("browser: the library head keeps naming the photo on a multi-cut plate",
+              page.inner_text("#libName").strip().endswith(".jpg"),
+              page.inner_text("#libName"))
+        check("browser: the library head keeps the slot's EXIF count",
+              "tags" in page.inner_text("#libMeta")
+              and "0 tags" not in page.inner_text("#libMeta"),
+              page.inner_text("#libMeta"))
         check("browser: four slot tiles are drawn", page.locator("#slotTrack .slot").count() == 4)
         check("browser: every filled tile shows a thumbnail",
               page.evaluate("""() => [...document.querySelectorAll('#slotTrack .slot')]
@@ -862,8 +866,8 @@ def browser_tests(port):
         check("browser: the floating 4-cut button retires on a single-cut frame",
               page.is_hidden("#slotToggle"))
         check("browser: the panel is down on a single-cut frame", page.is_hidden("#slotBar"))
-        check("browser: the single-photo strip comes back on a single-cut frame",
-              page.is_visible("#sessionCard"))
+        check("browser: the library head still names the photo on a single-cut frame",
+              page.inner_text("#libName").strip().endswith(".jpg"))
 
         # ── the floating 4-cut control ─────────────────────────────────────
         print("\n[browser] the 4-cut control: bottom-right of the plate, panel above it")
@@ -1045,7 +1049,8 @@ def browser_tests(port):
         check("browser: picking a theme closes the window",
               page.evaluate("() => window.SPApp.isFyraOpen()") is False)
         check("browser: the readout names the theme",
-              "NORDIC GRID" in page.inner_text("#styleChip"), page.inner_text("#styleChip"))
+              "NORDIC GRID" in page.inner_text("#exportStyle").upper(),
+              page.inner_text("#exportStyle"))
         check("browser: the plate itself switched theme",
               page.evaluate(PAINT_ONE, {"style": "fyra04", "theme": "nordic", "width": 200})["hash"]
               == theme_geometry["nordic"]["hash"])
@@ -1124,8 +1129,8 @@ def browser_tests(port):
         mpage.wait_for_timeout(500)
         check("browser: mobile offers the floating 4-cut button", mpage.is_visible("#slotToggle"))
         check("browser: mobile keeps the 4-cut panel down until asked", mpage.is_hidden("#slotBar"))
-        check("browser: mobile hides the single-photo strip on a multi-cut plate",
-              mpage.is_hidden("#sessionCard"))
+        check("browser: mobile keeps the photo's name in the library head",
+              mpage.inner_text("#libName").strip().endswith(".jpg"))
         mfab = rect_of(mpage, "#slotToggle")
         mstage = rect_of(mpage, "#stage")
         check("browser: the mobile control stays in the plate's bottom-right corner",
@@ -1169,7 +1174,7 @@ def browser_tests(port):
             const b = f.getBoundingClientRect();
             const ov = (a, c) => Math.max(0, Math.min(a.right, c.right) - Math.max(a.left, c.left)) *
                                 Math.max(0, Math.min(a.bottom, c.bottom) - Math.max(a.top, c.top));
-            const others = ['.strip', '.toolbar', '#sessionCard', '.app-header']
+            const others = ['.strip', '.toolbar', '.app-header']
               .map(s => document.querySelector(s)).filter(Boolean);
             const dots = document.querySelector('#portalMenuBtn').getBoundingClientRect();
             return {shown: getComputedStyle(f).visibility, opacity: getComputedStyle(f).opacity,

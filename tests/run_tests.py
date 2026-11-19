@@ -11,7 +11,7 @@ Two layers:
              units, 8-frame geometry & distinct rendering, frame strip,
              sheet open/close, upload-state transition, export dimensions,
              mobile ergonomics (320/390: no overflow, 16px inputs, 44px targets,
-             single-line header, one-row session card).
+             single-line header, a compact frame library that names the photo).
 
 Usage:
     python3 tests/run_tests.py [-v]
@@ -314,7 +314,8 @@ def static_tests():
     check("the studio docks the toggle onto the bottom control panel",
           "function syncThemeToggle" in dock_js
           and dock_js.count("setProperty('--hd2-toggle-bottom'") >= 1
-          and "[el.sessionCard, el.stripSection, el.wsStrip, el.toolbarEl]" in dock_js,
+          and "[el.stripSection, el.wsStrip, el.toolbarEl]" in dock_js
+          and "el.sessionCard" not in dock_js,
           "app.js has no dock measurement")
     pc_rule = re.search(r"@media \(min-width: 1024px\) \{\s*body\[data-view=\"editor\"\] "
                         r"\.hd2-theme-toggle \{[^}]*\}", mark_css, re.S)
@@ -325,8 +326,8 @@ def static_tests():
     check("the toggle steps aside from the 4-cell control on the two multi-cut plates",
           re.search(r'body\[data-view="editor"\]:has\(#slotToggle:not\(\[hidden\]\)\) '
                     r"\.hd2-theme-toggle \{[^}]*--hd2-toggle-right: 66px;", mark_css, re.S) is not None)
-    check("the phone header keeps 샘플 out of the studio's way",
-          'body[data-view="editor"] #headerSampleBtn { display: none; }' in mark_css)
+    check("the phone header hands 샘플's room to the image button",
+          '#headerSampleBtn { display: none; }' in mark_css)
     check("the landing keeps the floating toggle's own offset",
           re.search(r"\.hd2-theme-toggle \{[^}]*--hd2-toggle-bottom: 24px;", mark_css, re.S) is not None)
 
@@ -446,13 +447,43 @@ def static_tests():
     check("menu items are announced as menu items",
           portal.count('role="menuitem"') >= 6 and 'role="menuitemcheckbox"' in portal)
 
-    # upload zone & session card
+    # upload zone, and the filename bar's replacement
     check("dropzone present in the empty state", 'id="dropzone"' in html)
     check("sample button present in the empty state", 'id="emptySampleBtn"' in html)
-    for i in ("sessionCard", "sessionThumb", "metaName", "metaSize", "metaExif",
-              "changeBtn", "clearBtn"):
-        check(f"session card element {i}", f'id="{i}"' in html)
-    check("session card starts hidden", re.search(r'id="sessionCard"[^>]*hidden', html) is not None)
+    for gone in ("sessionCard", "sessionThumb", "metaName", "metaSize", "metaBytes",
+                 "metaExif", "changeBtn", "clearBtn", "styleChip", "renderChip"):
+        check(f"filename bar element {gone} is gone", f'id="{gone}"' not in html,
+              f'id="{gone}" is still in index.html')
+    sheet_css = read("style.css")
+    check("the stylesheet keeps no filename-bar rules",
+          ".session-name" not in sheet_css and ".session-facts" not in sheet_css
+          and ".session-thumb" not in sheet_css)
+    # the header carries an image-only open button, wired to the single-image chooser
+    head_html = html[html.find('<header class="app-header">'):html.find('</header>')]
+    check("header has an image-only open button", 'id="headerOpenBtn"' in head_html)
+    open_btn = re.search(r'<button[^>]*id="headerOpenBtn".*?</button>', head_html, re.S)
+    check("the image button is labelled politely",
+          open_btn is not None and "이미지 열기" in open_btn.group(0)
+          and "이미지 파일 열기" in open_btn.group(0))
+    check("the image button wears the image icon",
+          open_btn is not None and 'href="#i-image"' in open_btn.group(0))
+    check("the single-image chooser lives in the header, not the empty state",
+          head_html.count('id="fileInput"') == 1
+          and 'id="fileInput"' not in html[html.find('id="dropzone"'):html.find('id="fileInput"')])
+    # the library head names the photo, and ellipsises a long name
+    check("library head has a filename slot", 'id="libName"' in html)
+    check("library head has a resolution/EXIF slot", 'id="libMeta"' in html)
+    check("library head no longer prints the FRAME LIBRARY label as its heading",
+          '<span class="strip-title">FRAME LIBRARY</span>' not in html)
+    name_rule = re.search(r'\.strip-file-name \{[^}]*\}', sheet_css, re.S)
+    check("a long filename ellipsises instead of breaking the row",
+          name_rule is not None and "text-overflow: ellipsis" in name_rule.group(0)
+          and "white-space: nowrap" in name_rule.group(0)
+          and "min-width: 0" in name_rule.group(0),
+          name_rule.group(0) if name_rule else "no rule")
+    # the clear action keeps a door in ⋮
+    check("the ⋮ menu carries 비우기 now that the bar is gone",
+          'id="menuClearBtn"' in html and "사진 비우기" in html)
 
     # tool bar / sheets
     sheet_buttons = re.findall(r'data-sheet="([a-z]+)"', html)
@@ -1467,10 +1498,15 @@ def browser_tests(port):
         check("browser: modules exposed", page.evaluate(
             "() => !!(window.SPPlate && window.SPExif && window.SPEmblems && window.exifr)"))
 
-        # empty state ⇄ session card
+        # empty state: the library head falls back to its own name
         check("empty: dropzone visible", page.is_visible("#dropzone"))
         check("empty: sample button visible", page.is_visible("#emptySampleBtn"))
-        check("empty: session card hidden", not page.is_visible("#sessionCard"))
+        check("empty: no filename bar exists", page.locator("#sessionCard").count() == 0)
+        check("empty: library head reads FRAME LIBRARY",
+              page.inner_text("#libName").strip() == "FRAME LIBRARY",
+              page.inner_text("#libName"))
+        check("empty: the header's image button is offered",
+              page.is_visible("#headerOpenBtn"))
         check("empty: export disabled", page.is_disabled("#downloadBtn")
               and page.is_disabled("#headerDownloadBtn"))
         check("empty: no page scroll", page.evaluate(
@@ -1496,29 +1532,46 @@ def browser_tests(port):
                  c.querySelector('.frame-name').textContent.trim().length > 2 &&
                  c.querySelector('.frame-badge').textContent.trim().length > 1)"""))
 
-        # upload → compact session card
+        # upload → the library head names the photo
         page.click("#emptySampleBtn")
         page.wait_for_function("() => window.SPApp.state.photo && window.SPApp.state.photo.w > 0",
                                timeout=15000)
         page.wait_for_timeout(600)
 
         check("upload: empty state hidden", not page.is_visible("#emptyState"))
-        check("upload: session card shown", page.is_visible("#sessionCard"))
-        check("upload: session card is one row", page.evaluate(
-            "() => document.querySelector('#sessionCard').getBoundingClientRect().height") <= 72,
-            str(page.evaluate("() => document.querySelector('#sessionCard').getBoundingClientRect().height")))
-        check("upload: session thumbnails the photo",
-              page.evaluate("() => { const c = document.querySelector('#sessionThumb');"
-                            " const d = c.getContext('2d').getImageData(0,0,c.width,c.height).data;"
-                            " let s = 0; for (let i=0;i<d.length;i+=4*53) s += d[i]+d[i+1]+d[i+2];"
-                            " return s > 0; }"))
-        check("upload: filename shown", page.inner_text("#metaName").endswith(".jpg"))
-        check("upload: resolution shown", re.match(r"\d+ × \d+", page.inner_text("#metaSize")) is not None,
-              page.inner_text("#metaSize"))
-        check("upload: EXIF chip shown", "tags" in page.inner_text("#metaExif"))
-        check("upload: change/clear buttons present",
-              page.is_visible("#changeBtn") and page.is_visible("#clearBtn"))
+        head_text = page.inner_text(".strip-head")
+        check("upload: the library head names the file, not FRAME LIBRARY",
+              "sample-01.jpg" in head_text and "FRAME LIBRARY" not in head_text, head_text)
+        check("upload: the head's name slot ends in .jpg",
+              page.inner_text("#libName").strip().endswith(".jpg"),
+              page.inner_text("#libName"))
+        check("upload: resolution rides beside the name",
+              re.match(r"\d+ × \d+ · \d+ tags",
+                       page.inner_text("#libMeta").strip()) is not None,
+              page.inner_text("#libMeta"))
         check("upload: download enabled", page.is_enabled("#downloadBtn"))
+        # the header button opens the same chooser the empty-state dropzone does
+        with page.expect_file_chooser(timeout=4000) as fc:
+            page.click("#headerOpenBtn")
+        check("upload: the header's image button opens the file chooser",
+              fc.value is not None and fc.value.is_multiple() is False)
+        # a long filename ellipsises inside the head line instead of pushing the tools off
+        long_name = page.evaluate("""() => {
+          const n = document.querySelector('#libName');
+          const keep = n.textContent;
+          n.textContent = 'SHUTTERPLATE_2026_11_19_HASSELBLAD_X2D_II_50C_0001_EDITED_FINAL.jpg';
+          const head = document.querySelector('.strip-head').getBoundingClientRect();
+          const tools = document.querySelector('.plate-tools').getBoundingClientRect();
+          const el = n.getBoundingClientRect();
+          const out = {ellipsis: n.scrollWidth > n.clientWidth + 1,
+                       inside: el.right <= head.right - 2 && el.right <= tools.left + 1,
+                       oneLine: el.height <= 22};
+          n.textContent = keep;
+          return out;
+        }""")
+        check("upload: a long filename ellipsises, one line, clear of the tools",
+              long_name["ellipsis"] and long_name["inside"] and long_name["oneLine"],
+              json.dumps(long_name))
 
         fields = page.evaluate("() => window.SPApp.state.fields")
         for k, v in SAMPLE_EXPECT.items():
@@ -1632,8 +1685,8 @@ def browser_tests(port):
                      .map(c => c.dataset.style)""")
             check(f"frame {label}: taps select it", checked == [fid], str(checked))
             check(f"frame {label}: canvas repaints", sig["hash"] != was, f"{fid} unchanged")
-            check(f"frame {label}: chip follows", label.upper() in page.inner_text("#styleChip"),
-                  page.inner_text("#styleChip"))
+            check(f"frame {label}: the export pane follows", label in page.inner_text("#exportStyle"),
+                  page.inner_text("#exportStyle"))
             check(f"frame {label}: strip preview stays painted", page.evaluate(
                 """(id) => { const cv = document.querySelector(`.frame-card[data-style="${id}"] canvas`);
                      const d = cv.getContext('2d').getImageData(0,0,cv.width,cv.height).data;
@@ -1654,8 +1707,8 @@ def browser_tests(port):
               page.is_visible("#slotToggle"))
         check("multi: the 4-cut panel stays down until it is asked for",
               page.is_hidden("#slotBar"))
-        check("multi: the single-photo strip is hidden on a multi-cut plate",
-              page.is_hidden("#sessionCard"))
+        check("multi: the library head keeps naming the photo",
+              page.inner_text("#libName").strip().endswith(".jpg"))
         check("multi: four slot tiles are drawn", page.locator("#slotTrack .slot").count() == 4)
         check("multi: every filled cell shows its own thumbnail",
               page.evaluate("""() => [...document.querySelectorAll('#slotTrack .slot')]
@@ -1710,8 +1763,8 @@ def browser_tests(port):
         check("multi: the floating 4-cut button retires on a single-cut frame",
               page.is_hidden("#slotToggle"))
         check("multi: the panel is down on a single-cut frame", page.is_hidden("#slotBar"))
-        check("multi: the single-photo strip comes back on a single-cut frame",
-              page.is_visible("#sessionCard"))
+        check("multi: the library head still names the photo on a single-cut frame",
+              page.inner_text("#libName").strip().endswith(".jpg"))
 
         # the control is a button on the plate, not a bar beside it
         page.evaluate("() => window.SPApp.loadSampleSlots()")
@@ -1861,7 +1914,8 @@ def browser_tests(port):
         check("fyra: picking a theme closes the window",
               page.evaluate("() => window.SPApp.isFyraOpen()") is False)
         check("fyra: the readout names the theme",
-              "NORDIC GRID" in page.inner_text("#styleChip"), page.inner_text("#styleChip"))
+              "NORDIC GRID" in page.inner_text("#exportStyle").upper(),
+              page.inner_text("#exportStyle"))
         page.click('.frame-card[data-style="fyra04"]')
         page.wait_for_timeout(300)
         page.keyboard.press("Escape")
@@ -2012,8 +2066,8 @@ def browser_tests(port):
         mpage.wait_for_timeout(500)
         check("multi 390: the floating 4-cut button is offered", mpage.is_visible("#slotToggle"))
         check("multi 390: the panel stays down until asked", mpage.is_hidden("#slotBar"))
-        check("multi 390: the single-photo strip is hidden on a multi-cut plate",
-              mpage.is_hidden("#sessionCard"))
+        check("multi 390: the library head keeps naming the photo",
+              mpage.inner_text("#libName").strip().endswith(".jpg"))
         mfab = rect_of(mpage, "#slotToggle")
         mstage = rect_of(mpage, "#stage")
         check("multi 390: the control stays in the plate's bottom-right corner",
@@ -3244,7 +3298,7 @@ def browser_tests(port):
                 const ov = (a, c) => Math.max(0, Math.min(a.right, c.right) - Math.max(a.left, c.left)) *
                                     Math.max(0, Math.min(a.bottom, c.bottom) - Math.max(a.top, c.top));
                 const f = document.querySelector('#hd2ThemeToggle').getBoundingClientRect();
-                const others = ['#insDock', '.strip', '#sessionCard', '.app-header']
+                const others = ['#insDock', '.strip', '.app-header']
                   .map(s => document.querySelector(s)).filter(Boolean);
                 return others.reduce((sum, el) => sum + ov(f, el.getBoundingClientRect()), 0);
               }""") == 0)
@@ -3374,7 +3428,7 @@ def browser_tests(port):
         sw = ppage.evaluate("""() => ({make: SPApp.state.fields.make, style: SPApp.state.style,
             pad: SPApp.state.geo.padPct, exif: document.querySelector('#fMake').value,
             count: document.querySelector('#wsCount').textContent,
-            name: document.querySelector('#metaName').textContent})""")
+            name: document.querySelector('#libName').textContent})""")
         check("workspace: clicking a photo re-reads its EXIF",
               sw["make"] == "FUJIFILM" and sw["exif"] == "FUJIFILM" and sw["name"] == "sample-02.jpg",
               json.dumps(sw))
@@ -3843,17 +3897,15 @@ def browser_tests(port):
           inline: !!(SPApp.state.photo && SPApp.state.photo.inline),
           src: (SPApp.state.photo && SPApp.state.photo.objectUrl || '').slice(0, 16),
           errors: document.querySelectorAll('.toast.is-error').length,
-          name: document.querySelector('#metaName').textContent,
-          thumb: (() => { const c = document.querySelector('#sessionThumb');
-            const d = c.getContext('2d').getImageData(0, 0, c.width, c.height).data;
-            let s = 0; for (let i = 0; i < d.length; i += 4 * 53) s += d[i] + d[i+1] + d[i+2];
-            return s; })()
+          name: document.querySelector('#libName').textContent,
+          meta: document.querySelector('#libMeta').textContent
         })""")
         check("blocked blob: the photo still loads through the data URL",
               retry["loaded"] and retry["inline"] is True and retry["name"].endswith(".jpg"),
               json.dumps(retry))
         check("blocked blob: no error toast is raised", retry["errors"] == 0, str(retry["errors"]))
-        check("blocked blob: the session card paints the photo", retry["thumb"] > 0, str(retry["thumb"]))
+        check("blocked blob: the library head names the recovered photo",
+              retry["name"].endswith(".jpg"), str(retry))
         check("blocked blob: no page errors", not rerr, str(rerr[:3]))
         rctx.close()
         kctx.close()
@@ -3921,17 +3973,32 @@ def browser_tests(port):
         layout = mpage.evaluate("""() => {
           const r = s => document.querySelector(s).getBoundingClientRect();
           return {header: r('.app-header').height, stage: r('.stage').height,
-                  session: r('#sessionCard').height, strip: r('.strip').height,
+                  strip: r('.strip').height,
                   bar: r('.toolbar').height, vh: window.innerHeight,
                   canvas: r('#stageCanvas').height,
+                  headH: r('.strip-head').height, cardH: r('.frame-card').height,
                   headerWrap: r('.app-header').height > 70};
         }""")
         check("mobile: header stays one row", not layout["headerWrap"], json.dumps(layout))
         check("mobile: canvas keeps the largest share of the viewport",
               layout["canvas"] > layout["strip"], json.dumps(layout))
-        total = layout["header"] + layout["stage"] + layout["session"] + layout["strip"] + layout["bar"]
+        total = layout["header"] + layout["stage"] + layout["strip"] + layout["bar"]
         check("mobile: whole studio fits in one viewport", total <= layout["vh"] + 2,
               f"{total} vs {layout['vh']}")
+
+        check("mobile: the library is a compact shelf", layout["strip"] <= 138,
+              json.dumps(layout))
+        check("mobile: nothing overflows the header's single row",
+              mpage.evaluate("""() => {
+                const hr = document.querySelector('.app-header').getBoundingClientRect();
+                const kids = [...document.querySelectorAll('.header-actions > *')]
+                  .filter(n => n.getBoundingClientRect().width);
+                const last = kids[kids.length - 1].getBoundingClientRect();
+                return {lastRight: last.right, headerRight: hr.right,
+                        btn: document.querySelector('#headerOpenBtn').getBoundingClientRect().width};
+              }""")["lastRight"] <= 390 - 4)
+        check("mobile: the image button is a 44px target", mpage.evaluate(
+            "() => document.querySelector('#headerOpenBtn').getBoundingClientRect().width") >= 44)
 
         # the floating Light/Dark toggle — the app's only theme control, kept clear
         # of the frame library, the bottom toolbar and the session row
@@ -3940,7 +4007,7 @@ def browser_tests(port):
           const b = f.getBoundingClientRect();
           const ov = (a, c) => Math.max(0, Math.min(a.right, c.right) - Math.max(a.left, c.left)) *
                               Math.max(0, Math.min(a.bottom, c.bottom) - Math.max(a.top, c.top));
-          const others = ['.strip', '.toolbar', '#sessionCard', '.app-header']
+          const others = ['.strip', '.toolbar', '.app-header']
             .map(s => document.querySelector(s)).filter(Boolean);
           const dots = document.querySelector('#portalMenuBtn').getBoundingClientRect();
           return {shown: getComputedStyle(f).visibility, opacity: getComputedStyle(f).opacity,
@@ -4070,8 +4137,8 @@ def browser_tests(port):
         n2 = spage.evaluate("""() => {
           const r = s => document.querySelector(s).getBoundingClientRect();
           return {sw: document.documentElement.scrollWidth, iw: window.innerWidth,
-                  session: r('#sessionCard').height,
-                  total: r('.app-header').height + r('.stage').height + r('#sessionCard').height
+                  strip: r('.strip').height, head: r('.strip-head').height,
+                  total: r('.app-header').height + r('.stage').height
                          + r('.strip').height + r('.toolbar').height,
                   vh: window.innerHeight,
                   stripSw: document.querySelector('#frameStrip').scrollWidth,
@@ -4079,9 +4146,32 @@ def browser_tests(port):
         }""")
         check("320: still no horizontal overflow after upload",
               n2["sw"] <= n2["iw"] + 1, json.dumps(n2))
-        check("320: session card stays one row", n2["session"] <= 62, json.dumps(n2))
+        check("320: the library head stays one line", n2["head"] <= 46, json.dumps(n2))
+        check("320: the library stays compact", n2["strip"] <= 132, json.dumps(n2))
+        check("320: the head's filename ellipsises rather than overflowing",
+              spage.evaluate("""() => {
+                const n = document.querySelector('#libName');
+                return n.getBoundingClientRect().right <=
+                       document.querySelector('.strip-head').getBoundingClientRect().right - 2;
+              }"""))
         check("320: studio fits the viewport", n2["total"] <= n2["vh"] + 2, json.dumps(n2))
         check("320: frame strip scrolls", n2["stripSw"] > n2["stripCw"] + 20, json.dumps(n2))
+        # the bar's 비우기 moved into ⋮: one door, same job
+        spage.evaluate("() => window.SPApp.openMenu()")
+        spage.wait_for_timeout(160)
+        check("320: ⋮ offers 사진 비우기 once a photo is open",
+              spage.is_enabled("#menuClearBtn"))
+        spage.tap("#menuClearBtn")
+        spage.wait_for_timeout(500)
+        check("320: 사진 비우기 empties the plate",
+              spage.evaluate("() => !window.SPApp.state.photo")
+              and spage.inner_text("#libName").strip() == "FRAME LIBRARY"
+              and spage.is_visible("#emptyState"))
+        spage.evaluate("() => window.SPApp.openMenu()")
+        spage.wait_for_timeout(160)
+        check("320: the clear door disables itself with no photo open",
+              spage.is_disabled("#menuClearBtn"))
+        spage.evaluate("() => window.SPApp.closeMenu(true)")
         check("320: no page errors", not serr, str(serr[:3]))
         sctx.close()
     finally:

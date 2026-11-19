@@ -7,7 +7,7 @@ with the production build in `/PKPilot0003/`.
 
 > Production carries the same thirteen signatures since 2026-11-15; what stays
 > beta-only is the header build badge, the amber accent palette and these notes.
-> The studio shell (canvas to the header, one-line filename bar, view controls in
+> The studio shell (canvas to the header, the library head naming the photo, view controls in
 > the library head, docked Light/Dark toggle) is identical in both builds.
 
 ## What the beta adds
@@ -56,9 +56,8 @@ buttons, `샘플` and `사진 4장`. A tap outside, a second tap on the button, 
 `Escape` folds it away. The permanent slot bar is gone, so the stage keeps its
 height on a phone.
 
-On a multi-cut plate the single-photo `.session` strip under the stage is hidden
-entirely — the four cells already say which photographs are on the plate — and
-it comes back the moment a single-cut frame is selected.
+On a multi-cut plate the four cells move into the panel while the library head keeps naming the photo —
+the four cells already say which photographs are on the plate.
 
 ### Badges on a frame tile
 
