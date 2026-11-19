@@ -130,6 +130,13 @@
       </div>
       <input id="wsFileInput" type="file" accept="image/*" multiple hidden />
       <input id="wsFolderInput" type="file" accept="image/*" webkitdirectory directory multiple hidden />
+      <!-- one image straight onto the plate: the header button and the empty-state
+           dropzone both open this same chooser -->
+      <input id="fileInput" type="file" accept="image/*" hidden />
+      <button class="hbtn hbtn--open" id="headerOpenBtn" type="button" title="이미지 파일 열기" aria-label="이미지 파일 열기">
+        <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-image"/></svg>
+        <span class="hbtn-label">이미지 열기</span>
+      </button>
       <button class="hbtn" id="headerSampleBtn" type="button" title="샘플 사진 불러오기" aria-label="샘플 사진 불러오기">
         <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-camera"/></svg>
         <span class="hbtn-label">샘플</span>
@@ -153,6 +160,11 @@
             <span class="portal-ic" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><use href="#i-refresh"/></svg></span>
             <span class="portal-text"><b>EXIF 값으로 되돌리기</b><small id="menuResetHint">사진을 열면 쓸 수 있습니다</small></span>
             <span class="portal-badge portal-badge--live" id="menuResetBadge" aria-hidden="true">EXIF</span>
+          </button>
+          <button class="portal-item" id="menuClearBtn" type="button" role="menuitem" disabled>
+            <span class="portal-ic" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><use href="#i-trash"/></svg></span>
+            <span class="portal-text"><b>사진 비우기</b><small id="menuClearHint">사진을 열면 쓸 수 있습니다</small></span>
+            <span class="portal-badge" aria-hidden="true">CLEAR</span>
           </button>
           <button class="portal-item" id="menuEmblemBtn" type="button" role="menuitemcheckbox" aria-checked="false">
             <span class="portal-ic" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><use href="#i-stamp"/></svg></span>
@@ -297,7 +309,6 @@
 
         <div class="empty-state" id="emptyState">
           <div class="dropzone" id="dropzone" role="button" tabindex="0" aria-label="사진을 끌어다 놓거나 눌러서 선택">
-            <input id="fileInput" type="file" accept="image/*" hidden />
             <span class="dz-glow" aria-hidden="true"></span>
             <span class="dz-ring" aria-hidden="true">
               <svg class="dz-icon" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-upload"/></svg>
@@ -348,28 +359,17 @@
       </section>
     </section>
 
-    <!-- ── 파일명 바 (1줄) — 사진 이름·해상도, 변경·비우기 ──────────── -->
-    <section class="session" id="sessionCard" aria-label="선택한 사진" hidden>
-      <span class="session-thumb"><canvas id="sessionThumb" width="72" height="72" aria-hidden="true"></canvas></span>
-      <b class="session-name" id="metaName">—</b>
-      <span class="session-facts">
-        <span id="metaSize">—</span>
-        <span class="sep" aria-hidden="true">·</span>
-        <span id="metaBytes">—</span>
-        <span class="chip chip--exif" id="metaExifChip"><span id="metaExif">—</span></span>
-      </span>
-      <div class="session-actions">
-        <span class="chip chip--ghost session-chip" id="styleChip">CLEAN HORIZON</span>
-        <span class="chip chip--ghost session-chip" id="renderChip">—</span>
-        <button class="btn btn-ghost" id="changeBtn" type="button" title="사진 변경"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-swap"/></svg><span>변경</span></button>
-        <button class="btn btn-ghost" id="clearBtn" type="button" title="비우기" aria-label="캔버스 비우기"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-close"/></svg><span class="hide-xs">비우기</span></button>
-      </div>
-    </section>
 
     <!-- ── 하단 가로 프레임 슬라이더 — 머리줄이 프리뷰 배경·줌을 진다 ── -->
     <section class="strip" aria-label="프레임 갤러리">
       <div class="strip-head">
-        <span class="strip-title">FRAME LIBRARY</span>
+        <!-- the library's own head is the loaded photo's identity: the filename
+             takes the place the FRAME LIBRARY label used to keep, and the
+             resolution / EXIF count ride beside it -->
+        <p class="strip-file">
+          <b class="strip-file-name" id="libName">FRAME LIBRARY</b>
+          <span class="strip-file-meta" id="libMeta"></span>
+        </p>
         <span class="strip-count"><b id="frameCount">13</b> SIGNATURES</span>
         <span class="strip-hint">휠 · 드래그 · 스와이프 · FYRA 04는 다시 눌러 테마</span>
         <div class="plate-tools">
