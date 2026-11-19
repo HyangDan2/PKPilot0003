@@ -470,6 +470,30 @@ def static_tests():
     check("the single-image chooser lives in the header, not the empty state",
           head_html.count('id="fileInput"') == 1
           and 'id="fileInput"' not in html[html.find('id="dropzone"'):html.find('id="fileInput"')])
+    # PC: one open control in the header — a bare image icon. Folder open and its
+    # subfolder option moved into the ⋮ WORKSPACE section instead of crowding the bar.
+    pc_open = re.search(r'<div class="pc-open"[^>]*>(.*?)</div>', head_html, re.S)
+    check("the PC open row carries exactly one button",
+          pc_open is not None and pc_open.group(1).count('<button') == 1,
+          pc_open.group(1)[:300] if pc_open else "no pc-open row")
+    check("the PC open button wears an icon and no text label",
+          pc_open is not None and 'id="openFilesBtn"' in pc_open.group(1)
+          and 'href="#i-image"' in pc_open.group(1)
+          and 'class="hbtn-label"' not in pc_open.group(1))
+    check("the PC open button keeps its name for screen readers",
+          pc_open is not None and 'aria-label="사진 여러 장 열기 — 워크스페이스"' in pc_open.group(1)
+          and 'title="사진 여러 장 열기 — 워크스페이스"' in pc_open.group(1))
+    check("the phone's single-image button is hidden from PC by the stylesheet",
+          re.search(r'#headerOpenBtn \{ display: none; \}', sheet_css) is not None)
+    check("folder open moved into the ⋮ WORKSPACE section",
+          'id="openFolderBtn"' in portal and 'role="menuitem"' in portal
+          and 'id="menuRecursiveBtn"' in portal
+          and "폴더 열기" in portal and "하위 폴더 포함" in portal)
+    check("the subfolder option is a menu checkbox with a state badge",
+          'id="menuRecursiveState"' in portal
+          and re.search(r'id="menuRecursiveBtn"[^>]*role="menuitemcheckbox"[^>]*aria-checked="false"', portal) is not None)
+    check("the subfolder checkbox the folder scan reads still exists, hidden",
+          re.search(r'<input[^>]*id="recursiveToggle"[^>]*hidden', html) is not None)
     # the library head names the photo, and ellipsises a long name
     check("library head has a filename slot", 'id="libName"' in html)
     check("library head has a resolution/EXIF slot", 'id="libMeta"' in html)
@@ -1505,8 +1529,12 @@ def browser_tests(port):
         check("empty: library head reads FRAME LIBRARY",
               page.inner_text("#libName").strip() == "FRAME LIBRARY",
               page.inner_text("#libName"))
-        check("empty: the header's image button is offered",
-              page.is_visible("#headerOpenBtn"))
+        check("empty: the PC header offers one open icon, no label",
+              page.is_visible("#openFilesBtn")
+              and page.inner_text("#openFilesBtn").strip() == ""
+              and page.evaluate("() => Math.round(document.querySelector('#openFilesBtn').getBoundingClientRect().width)") == 44)
+        check("empty: the phone's single-image button steps out on PC",
+              not page.is_visible("#headerOpenBtn"))
         check("empty: export disabled", page.is_disabled("#downloadBtn")
               and page.is_disabled("#headerDownloadBtn"))
         check("empty: no page scroll", page.evaluate(
@@ -1550,11 +1578,11 @@ def browser_tests(port):
                        page.inner_text("#libMeta").strip()) is not None,
               page.inner_text("#libMeta"))
         check("upload: download enabled", page.is_enabled("#downloadBtn"))
-        # the header button opens the same chooser the empty-state dropzone does
+        # the PC open icon raises the same workspace chooser (a modal file dialog)
         with page.expect_file_chooser(timeout=4000) as fc:
-            page.click("#headerOpenBtn")
-        check("upload: the header's image button opens the file chooser",
-              fc.value is not None and fc.value.is_multiple() is False)
+            page.click("#openFilesBtn")
+        check("upload: the PC open icon opens the workspace chooser",
+              fc.value is not None and fc.value.is_multiple() is True)
         # a long filename ellipsises inside the head line instead of pushing the tools off
         long_name = page.evaluate("""() => {
           const n = document.querySelector('#libName');
@@ -3285,6 +3313,58 @@ def browser_tests(port):
         check("PC: landing offers 파일 열기 / 폴더 열기",
               ppage.is_visible("#emptyOpenFilesBtn") and ppage.is_visible("#emptyOpenFolderBtn"))
 
+        # the header keeps one open control: a 44px image icon, no label. Folder
+        # open and 하위 폴더 포함 live inside ⋮ instead of crowding the bar.
+        openbar = ppage.evaluate("""() => {
+          const vis = el => { const r = el.getBoundingClientRect();
+            return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+          const btn = document.querySelector('#openFilesBtn');
+          const r = btn.getBoundingClientRect();
+          return {shown: vis(btn), w: +r.width.toFixed(1), h: +r.height.toFixed(1),
+                  label: btn.innerText.trim(), title: btn.getAttribute('title'),
+                  aria: btn.getAttribute('aria-label'),
+                  icon: btn.querySelectorAll('svg use[href="#i-image"]').length,
+                  ownLabel: btn.querySelectorAll('.hbtn-label').length,
+                  phoneBtn: vis(document.querySelector('#headerOpenBtn')),
+                  folderInBar: vis(document.querySelector('#openFolderBtn')),
+                  recInBar: vis(document.querySelector('#recursiveToggle'))};
+        }""")
+        check("PC: the header shows one open button only (the 44px image icon)",
+              openbar["shown"] and openbar["w"] == 44 and openbar["h"] == 44
+              and openbar["icon"] == 1 and openbar["ownLabel"] == 0 and openbar["label"] == "",
+              json.dumps(openbar, ensure_ascii=False))
+        check("PC: the open icon keeps its title and aria name",
+              openbar["title"] == "사진 여러 장 열기 — 워크스페이스"
+              and openbar["aria"] == "사진 여러 장 열기 — 워크스페이스", json.dumps(openbar, ensure_ascii=False))
+        check("PC: the phone's single-image button and the folder bar are out of the header",
+              not openbar["phoneBtn"] and not openbar["folderInBar"] and not openbar["recInBar"],
+              json.dumps(openbar, ensure_ascii=False))
+        with ppage.expect_file_chooser(timeout=5000) as pfc:
+            ppage.click("#openFilesBtn")
+        check("PC: the open icon raises the chooser (a warm modal) in one click",
+              pfc.value is not None and pfc.value.is_multiple() is True)
+        check("PC: the studio is still the editor after the chooser",
+              ppage.is_visible("#stageCanvas"))
+        ppage.evaluate("() => window.SPApp.openMenu()")
+        ppage.wait_for_timeout(200)
+        check("PC: ⋮ WORKSPACE now carries 폴더 열기 / 하위 폴더 포함",
+              ppage.is_visible("#openFolderBtn") and ppage.is_visible("#menuRecursiveBtn"))
+        ppage.click("#menuRecursiveBtn")
+        ppage.wait_for_timeout(120)
+        check("PC: 하위 폴더 포함 switches ON in the menu",
+              ppage.get_attribute("#menuRecursiveBtn", "aria-checked") == "true"
+              and ppage.inner_text("#menuRecursiveState").strip() == "ON"
+              and ppage.evaluate("() => document.querySelector('#recursiveToggle').checked") is True)
+        ppage.click("#menuRecursiveBtn")
+        ppage.wait_for_timeout(120)
+        check("PC: and back OFF again",
+              ppage.get_attribute("#menuRecursiveBtn", "aria-checked") == "false"
+              and ppage.evaluate("() => document.querySelector('#recursiveToggle').checked") is False)
+        ppage.evaluate("() => window.SPApp.closeMenu(false)")
+        ppage.wait_for_timeout(150)
+        check("PC: the header stays one row", ppage.evaluate(
+            "() => document.querySelector('.app-header').getBoundingClientRect().height") <= 70)
+
         check("PC: the studio wears the floating toggle, not a header copy",
               ppage.evaluate("""() => {
                 const f = document.querySelector('#hd2ThemeToggle');
@@ -3514,6 +3594,8 @@ def browser_tests(port):
         fpage.on("pageerror", lambda e: ferr.append(str(e)))
         fpage.goto(studio, wait_until="networkidle")
         fpage.wait_for_timeout(300)
+        fpage.click("#portalMenuBtn")          # 폴더 열기는 이제 ⋮ WORKSPACE에 있습니다
+        fpage.wait_for_timeout(160)
         fpage.click("#openFolderBtn")
         fpage.wait_for_function(
             "() => SPApp.workspace().entries.length === 2 && !SPApp.workspace().scanning", timeout=30000)
@@ -3530,7 +3612,13 @@ def browser_tests(port):
         check("folder: the strip shows the folder",
               flat["hidden"] is False and flat["count"] == "1 / 2", json.dumps(flat))
 
-        fpage.check("#recursiveToggle")
+        fpage.click("#portalMenuBtn")
+        fpage.wait_for_timeout(160)
+        fpage.click("#menuRecursiveBtn")         # 하위 폴더 포함 ON
+        fpage.wait_for_timeout(120)
+        check("menu: 하위 폴더 포함 reads ON once switched",
+              fpage.get_attribute("#menuRecursiveBtn", "aria-checked") == "true"
+              and fpage.inner_text("#menuRecursiveState").strip() == "ON")
         fpage.click("#openFolderBtn")
         fpage.wait_for_function(
             "() => SPApp.workspace().entries.length === 3 && !SPApp.workspace().scanning", timeout=30000)
@@ -3550,6 +3638,8 @@ def browser_tests(port):
         npage.goto(studio, wait_until="networkidle")
         npage.wait_for_timeout(300)
         with npage.expect_file_chooser() as fc:
+            npage.click("#portalMenuBtn")
+            npage.wait_for_timeout(120)
             npage.click("#openFolderBtn")
         fc.value.set_files(os.path.join(ROOT, "assets", "samples"))
         npage.wait_for_function("() => SPApp.workspace().entries.length === 3", timeout=30000)

@@ -127,6 +127,10 @@
     libName: $('#libName'),
     libMeta: $('#libMeta'),
     headerOpenBtn: $('#headerOpenBtn'),
+    openFilesBtn: $('#openFilesBtn'),
+    openFolderBtn: $('#openFolderBtn'),
+    menuRecursiveBtn: $('#menuRecursiveBtn'),
+    menuRecursiveState: $('#menuRecursiveState'),
     strip: $('#frameStrip'),
     frameCount: $('#frameCount'),
     emblemGrid: $('#emblemGrid'),
@@ -791,6 +795,11 @@
           ? '현재 All Black — 눌러서 원본 컬러'
           : '현재 원본 컬러 — 눌러서 All Black';
       }
+    }
+    if (el.menuRecursiveBtn) {
+      var recursive = !!(el.recursiveToggle && el.recursiveToggle.checked);
+      el.menuRecursiveBtn.setAttribute('aria-checked', recursive ? 'true' : 'false');
+      if (el.menuRecursiveState) el.menuRecursiveState.textContent = recursive ? 'ON' : 'OFF';
     }
   }
 
@@ -2790,8 +2799,19 @@
     });
     ['#openFolderBtn', '#emptyOpenFolderBtn'].forEach(function (sel) {
       var b = $(sel);
-      if (b) b.addEventListener('click', openFolder);
+      if (b) b.addEventListener('click', function () { closeMenu(false); openFolder(); });
     });
+    /* ⋮ WORKSPACE — the folder's subfolders, remembered by the hidden checkbox
+       the folder scan reads */
+    if (el.menuRecursiveBtn) {
+      el.menuRecursiveBtn.addEventListener('click', function () {
+        var on = !(el.recursiveToggle && el.recursiveToggle.checked);
+        if (el.recursiveToggle) el.recursiveToggle.checked = on;
+        el.menuRecursiveBtn.setAttribute('aria-checked', on ? 'true' : 'false');
+        if (el.menuRecursiveState) el.menuRecursiveState.textContent = on ? 'ON' : 'OFF';
+        el.menuRecursiveBtn.focus({ preventScroll: true });
+      });
+    }
     if (el.wsFileInput) {
       el.wsFileInput.addEventListener('change', function () {
         var files = el.wsFileInput.files;
