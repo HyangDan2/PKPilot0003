@@ -41,8 +41,9 @@ Every control fits one 100dvh screen. There is no vertical page scroll.
    No bar overlays the canvas: the viewport runs from just under the header down to the frame library.
 2. **Frame library head** — the loaded photo's identity: **file name · resolution · EXIF count**, the file name
    taking the slot the `FRAME LIBRARY` label used to keep (`…` for a long name, so the row never breaks).
-   With no photo open the slot falls back to `FRAME LIBRARY`. Opening files is the header's job
-   (`Open files` · `Open folder` · `Image` · `Sample` · `Save` · `⋮`), and `⋮ → Clear photo` empties the plate.
+   With no photo open the slot falls back to `FRAME LIBRARY`. Opening files is the header's job: on PC the bar
+   carries **one open icon** (44px, the workspace chooser), and `⋮ → Open folder` / `⋮ → Subfolders` reach a
+   whole folder; `⋮ → Clear photo` empties the plate. The phone keeps `Image` · `Save` · `⋮`.
 3. **FRAME LIBRARY** — a horizontal slider under the stage with live miniatures of the 13 frames, name and
    feature badge; move with the wheel, drag, swipe or `←`/`→`, and a tap applies the frame instantly with an
    accent ring on the selected card. The compact shelf (56px thumbnails on a phone, 74px on a PC) leaves the
@@ -89,8 +90,8 @@ one-photo folder still counts as a folder and shows the strip.)
 
 | Action | Behaviour |
 | --- | --- |
-| Header `Open files` / landing card | Select several photos at once (`multiple`) |
-| Header `Open folder` | Scans a folder handle with `showDirectoryPicker`; the `Subfolders` checkbox includes subfolders |
+| Header open icon (PC) / landing card | Select several photos at once (`multiple`) |
+| `⋮ → Open folder` | Scans a folder handle with `showDirectoryPicker`; `⋮ → Subfolders` includes subfolders |
 | Same button (unsupported browser) | Falls back to `<input type="file" webkitdirectory multiple>` |
 | Click a strip item / `←` `→` | Switch photo — reads its EXIF again and repaints the canvas |
 | `Name ↑` / `Name ↓` | Sort by path (numeric-aware) |

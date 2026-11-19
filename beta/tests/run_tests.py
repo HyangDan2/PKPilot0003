@@ -300,6 +300,18 @@ def static_tests():
     check("static: the phone header hands 샘플's room to the image button",
           '#headerSampleBtn { display: none; }' in css
           and 'id="headerOpenBtn"' in hdr)
+    # the PC header keeps one open control (a bare image icon); folder open and
+    # 하위 폴더 포함 moved into the ⋮ WORKSPACE section, as in production
+    beta_pc_open = re.search(r'<div class="pc-open"[^>]*>(.*?)</div>', hdr, re.S)
+    check("static: the PC open row carries one button, an icon and no label",
+          beta_pc_open is not None and beta_pc_open.group(1).count("<button") == 1
+          and 'href="#i-image"' in beta_pc_open.group(1)
+          and 'class="hbtn-label"' not in beta_pc_open.group(1))
+    check("static: the phone's image button is hidden from the PC header",
+          re.search(r'#headerOpenBtn \{ display: none; \}', css) is not None)
+    check("static: ⋮ WORKSPACE carries folder open + 하위 폴더 포함",
+          'id="openFolderBtn"' in hdr and 'id="menuRecursiveBtn"' in hdr
+          and 'role="menuitemcheckbox"' in hdr and 'id="menuRecursiveState"' in hdr)
 
     # production is a different build and must stay that way
     prod_html = open(os.path.join(os.path.dirname(BETA), "index.html"), encoding="utf-8").read()
@@ -453,6 +465,64 @@ def browser_tests(port):
                   return max - min; }).every(v => v > 40)"""))
         check("browser: the page does not scroll horizontally",
               page.evaluate("() => document.documentElement.scrollWidth <= window.innerWidth + 1"))
+
+        # ── the PC header's single open control (parity with production) ────
+        print("\n[browser] PC header: one open icon, folder in ⋮")
+        hdr_state = page.evaluate("""() => {
+          const vis = el => { const r = el.getBoundingClientRect();
+            return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+          const btn = document.querySelector('#openFilesBtn');
+          const r = btn.getBoundingClientRect();
+          return {shown: vis(btn), w: Math.round(r.width), h: Math.round(r.height),
+                  label: btn.innerText.trim(), title: btn.getAttribute('title'),
+                  aria: btn.getAttribute('aria-label'),
+                  icon: btn.querySelectorAll('svg use[href="#i-image"]').length,
+                  ownLabel: btn.querySelectorAll('.hbtn-label').length,
+                  phoneBtn: vis(document.querySelector('#headerOpenBtn')),
+                  folderInBar: vis(document.querySelector('#openFolderBtn')),
+                  headerRow: document.querySelector('.app-header').getBoundingClientRect().height};
+        }""")
+        check("browser: PC header shows one open button — 44px image icon, no label",
+              hdr_state["shown"] and hdr_state["w"] == 44 and hdr_state["h"] == 44
+              and hdr_state["icon"] == 1 and hdr_state["ownLabel"] == 0 and hdr_state["label"] == "",
+              str(hdr_state))
+        check("browser: the open icon keeps its title and aria name",
+              hdr_state["title"] == "사진 여러 장 열기 — 워크스페이스"
+              and hdr_state["aria"] == "사진 여러 장 열기 — 워크스페이스", str(hdr_state))
+        check("browser: the phone's image button and folder bar stay out of the PC header",
+              not hdr_state["phoneBtn"] and not hdr_state["folderInBar"], str(hdr_state))
+        check("browser: the PC header stays one row", hdr_state["headerRow"] <= 70, str(hdr_state))
+        with page.expect_file_chooser(timeout=5000) as bfc:
+            page.click("#openFilesBtn")
+        check("browser: the open icon raises the workspace chooser",
+              bfc.value is not None and bfc.value.is_multiple() is True)
+        page.evaluate("() => window.SPApp.openMenu()")
+        page.wait_for_timeout(200)
+        check("browser: ⋮ offers 폴더 열기 and 하위 폴더 포함",
+              page.is_visible("#openFolderBtn") and page.is_visible("#menuRecursiveBtn"))
+        page.click("#menuRecursiveBtn")
+        page.wait_for_timeout(120)
+        check("browser: 하위 폴더 포함 reads ON",
+              page.get_attribute("#menuRecursiveBtn", "aria-checked") == "true"
+              and page.inner_text("#menuRecursiveState").strip() == "ON"
+              and page.evaluate("() => document.querySelector('#recursiveToggle').checked") is True)
+        page.click("#menuRecursiveBtn")
+        page.wait_for_timeout(120)
+        check("browser: and back OFF",
+              page.get_attribute("#menuRecursiveBtn", "aria-checked") == "false"
+              and page.evaluate("() => document.querySelector('#recursiveToggle').checked") is False)
+        page.evaluate("() => window.SPApp.closeMenu(false)")
+        page.wait_for_timeout(150)
+        # the phone keeps the single-image button it always had
+        mctx = browser.new_context(viewport={"width": 390, "height": 844})
+        mpage = mctx.new_page()
+        mpage.goto(base, wait_until="networkidle")
+        mpage.wait_for_timeout(400)
+        check("browser: the phone keeps its 44px image button, PC open row stays out",
+              mpage.evaluate("() => { const b = document.querySelector('#headerOpenBtn').getBoundingClientRect();"
+                             " const pc = document.querySelector('#openFilesBtn').getBoundingClientRect();"
+                             " return b.width >= 44 && pc.width === 0; }"))
+        mctx.close()
 
         # ── frame library ──────────────────────────────────────────────────
         print("\n[browser] the library: 13 tiles, single-cut first, multi-cut last")

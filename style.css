@@ -1619,30 +1619,13 @@ input[type="range"]::-moz-range-thumb {
   .toolbar { display: none; }
 
   .pc-open { display: inline-flex; align-items: center; gap: 6px; }
-  .pc-open .hbtn { padding: 0 11px; }
+  /* the PC header carries one open control: the image icon that opens the
+     workspace chooser. The phone's single-image button steps out here. */
+  .pc-open .hbtn { padding: 0; width: 44px; }
+  #headerOpenBtn { display: none; }
   .pc-only { display: inline-flex; }
   .empty-row--pc { display: flex; }
   .empty-row--pc .btn { min-height: 40px; font-size: 12px; padding: 0 13px; }
-
-  .pc-rec {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    height: 44px;
-    padding: 0 9px;
-    border: 1px dashed var(--line);
-    border-radius: var(--r-sm);
-    font-family: var(--mono);
-    font-size: 10.5px;
-    letter-spacing: 0.01em;
-    color: var(--muted);
-    cursor: pointer;
-    -webkit-user-select: none;
-    user-select: none;
-    transition: border-color 0.15s ease, color 0.15s ease;
-  }
-  .pc-rec input { width: 14px; height: 14px; margin: 0; accent-color: var(--accent); }
-  .pc-rec:hover { border-color: var(--accent-dim); color: var(--text); }
 
   /* 제어 패널 → 우측 고정 인스펙터 (시트 아님) */
   .sheet {

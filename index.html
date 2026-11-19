@@ -111,25 +111,19 @@
     </button>
 
     <div class="header-actions">
-      <!-- PC 워크스페이스 열기 (≥1024px) -->
+      <!-- PC 사진 열기 (≥1024px): 헤더에는 열기 아이콘 하나만 둡니다. 폴더로 열기와
+           하위 폴더 옵션은 ⋮ 메뉴 WORKSPACE 안에 있습니다. -->
       <div class="pc-open" id="pcOpen">
-        <button class="hbtn" id="openFilesBtn" type="button" title="사진 여러 장 열기 — 워크스페이스" aria-label="사진 여러 장 열기">
+        <button class="hbtn" id="openFilesBtn" type="button" title="사진 여러 장 열기 — 워크스페이스" aria-label="사진 여러 장 열기 — 워크스페이스">
           <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-image"/></svg>
-          <span class="hbtn-label">파일 열기</span>
         </button>
-        <button class="hbtn" id="openFolderBtn" type="button" title="폴더 열기 — Workspace" aria-label="폴더 열기">
-          <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-folder-open"/></svg>
-          <span class="hbtn-label">폴더 열기</span>
-        </button>
-        <label class="pc-rec" for="recursiveToggle" title="폴더를 열 때 하위 폴더의 사진까지 포함">
-          <input type="checkbox" id="recursiveToggle" />
-          <span>하위 폴더</span>
-        </label>
       </div>
       <input id="wsFileInput" type="file" accept="image/*" multiple hidden />
       <input id="wsFolderInput" type="file" accept="image/*" webkitdirectory directory multiple hidden />
-      <!-- one image straight onto the plate: the header button and the empty-state
-           dropzone both open this same chooser -->
+      <input id="recursiveToggle" type="checkbox" hidden />
+      <!-- one image straight onto the plate, for the phone. On PC this button is
+           hidden (the header keeps a single open icon) while the empty-state
+           dropzone keeps opening the same chooser -->
       <input id="fileInput" type="file" accept="image/*" hidden />
       <button class="hbtn hbtn--open" id="headerOpenBtn" type="button" title="이미지 파일 열기" aria-label="이미지 파일 열기">
         <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><use href="#i-image"/></svg>
@@ -153,6 +147,16 @@
             <span class="portal-ic" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><use href="#i-portal-home"/></svg></span>
             <span class="portal-text"><b>홈 / 랜딩 화면</b><small>시작 화면으로 이동</small></span>
             <span class="portal-badge" aria-hidden="true">HOME</span>
+          </button>
+          <button class="portal-item" id="openFolderBtn" type="button" role="menuitem">
+            <span class="portal-ic" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><use href="#i-folder-open"/></svg></span>
+            <span class="portal-text"><b>폴더 열기</b><small>Workspace — 폴더의 사진을 한 번에</small></span>
+            <span class="portal-badge" aria-hidden="true">FOLDER</span>
+          </button>
+          <button class="portal-item" id="menuRecursiveBtn" type="button" role="menuitemcheckbox" aria-checked="false">
+            <span class="portal-ic" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><use href="#i-folder"/></svg></span>
+            <span class="portal-text"><b>하위 폴더 포함</b><small>폴더를 열 때 안쪽 폴더의 사진까지</small></span>
+            <span class="portal-badge" id="menuRecursiveState" aria-hidden="true">OFF</span>
           </button>
           <button class="portal-item" id="menuResetExifBtn" type="button" role="menuitem" disabled>
             <span class="portal-ic" aria-hidden="true"><svg class="ic" viewBox="0 0 24 24"><use href="#i-refresh"/></svg></span>
