@@ -101,6 +101,9 @@
     slotTarget: 0,
     slotOpen: false,        // the floating 4-cut control is down (its panel is on the plate)
     fyraTheme: PL.FYRA_DEFAULT,
+    /* custom .shutterframe.json frame: when set, it draws the whole plate */
+    customSpec: null,
+    customList: [],
     fyraOpen: false,
     /* PC workspace: the photos opened together, or the folder a visitor picked.
        Everything stays local — handles and Files never leave this device. */
@@ -639,7 +642,7 @@
     if (!p) return;
     el.homeSessionName.textContent = p.name;
     el.homeSessionSize.textContent = p.w + ' × ' + p.h + ' px';
-    el.homeSessionFrame.textContent = PL.STYLES[state.style].label + ' 프레임';
+    el.homeSessionFrame.textContent = (state.customSpec ? state.customSpec.name : PL.STYLES[state.style].label) + ' 프레임';
     paintHomeThumb();
   }
 
@@ -1327,7 +1330,7 @@
       ctx.scale(s, s);
       ctx.fillStyle = L.colors.base;
       ctx.fillRect(0, 0, L.W, L.H);
-      PL.paint(ctx, L);
+      paintPlate(ctx, L);
       ctx.restore();
     });
   }
@@ -1793,7 +1796,7 @@
       ctx.fillStyle = L.colors.base;
       ctx.fillRect(0, 0, ow, oh);
       if (k !== 1) ctx.setTransform(k, 0, 0, k, 0, 0);
-      PL.paint(ctx, L);
+      paintPlate(ctx, L);
     } catch (e) {
       return null;                                             // the paint died
     }
@@ -1859,7 +1862,7 @@
         var emblem = state.emblemChoice === 'auto'
           ? EM.fromMake(fields.make, fields.model)
           : state.emblemChoice;
-        var L = PL.layout({ w: img.naturalWidth, h: img.naturalHeight, img: img }, {
+        var L = state.customSpec ? customLayoutForFile(fields, img) : PL.layout({ w: img.naturalWidth, h: img.naturalHeight, img: img }, {
           style: state.style, fields: fields, emblem: emblem, emblemMono: state.emblemMono,
           padPct: state.geo.padPct, extraPct: state.geo.extraPct, radiusPct: state.geo.radiusPct,
           ratio: state.ratio, font: state.font, stock: state.stock,
@@ -2041,12 +2044,341 @@
     return c;
   }
 
+
+  /* ── custom .shutterframe.json frames ─────────────────────────────────────
+     Mynda Ljósa (PKPilot0015) designs them, this studio prints them. The spec,
+     the validator and the painter are one shared script (js/shutterframe.js),
+     and the shelf is the same IndexedDB store Mynda Ljósa writes
+     (hd2_custom_frames_v1), so a frame travels by link, by file, or by simply
+     having been saved once on this device. */
+
+  var customCards = [];
+  var customPanelBuilt = false;
+
+  function sf() { return window.ShutterFrame || null; }
+
+  function escapeHtml(value) {
+    return String(value == null ? '' : value)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  }
+
+  function customFieldsOf(fields) {
+    var f = fields || state.fields || {};
+    var spec = state.customSpec;
+    return {
+      camera: [f.make, f.model].filter(Boolean).join(' '),
+      lens: f.lens || '',
+      film: state.stock || '',
+      date: f.datetime || '',
+      datetime: f.datetime || '',
+      caption: f.caption || '',
+      shutter: f.shutter || '',
+      iso: f.iso || '',
+      aperture: f.aperture || '',
+      title: spec ? spec.name : ''
+    };
+  }
+
+  function customFields() { return customFieldsOf(state.fields); }
+
+  function customScale(full) {
+    var spec = state.customSpec;
+    if (!full || !spec) return 1;
+    return Math.max(1, 2400 / Math.max(spec.canvas.width, spec.canvas.height));
+  }
+
+  function customLayout(full) {
+    var eng = sf();
+    var spec = state.customSpec;
+    if (!eng || !spec) return null;
+    var slots = slotSources(!!full);
+    while (slots.length < 4) slots.push(null);
+    slots = slots.map(function (slot) { return slot || { img: null, w: 0, h: 0 }; });
+    return eng.layout(spec, { scale: customScale(full), slots: slots, fields: customFields() });
+  }
+
+  /* A batch run has one file per plate, so every cell prints that file. */
+  function customLayoutForFile(fields, img) {
+    var eng = sf();
+    var spec = state.customSpec;
+    if (!eng || !spec) return null;
+    var four = [0, 1, 2, 3].map(function () {
+      return { img: img, w: img.naturalWidth, h: img.naturalHeight };
+    });
+    return eng.layout(spec, { scale: customScale(true), slots: four, fields: customFieldsOf(fields) });
+  }
+
+  function paintPlate(ctx, L) {
+    var eng = sf();
+    if (L && L.custom && eng) { eng.paint(ctx, L); return; }
+    PL.paint(ctx, L);
+  }
+
+  /* — the shelf — */
+  function customStore() { return sf() ? sf().store : null; }
+
+  function loadCustomShelf() {
+    var store = customStore();
+    if (!store) return Promise.resolve([]);
+    return store.list().then(function (rows) {
+      state.customList = rows || [];
+      buildCustomStrip();
+      buildCustomGrid();
+      return state.customList;
+    }, function () { return []; });
+  }
+
+  function saveCustomSpec(spec) {
+    var store = customStore();
+    if (!store) return Promise.resolve(spec);
+    return store.put(spec).then(function (stored) { return stored || spec; }, function () { return spec; });
+  }
+
+  function applyCustom(spec, opts) {
+    var eng = sf();
+    if (!eng || !spec) return Promise.resolve(false);
+    return eng.primeOverlay(spec).then(function () {
+      setStyle('fyra04');          // four cells, the slot bar, the 4-up geometry
+      state.customSpec = spec;
+      ensureSlots();
+      syncCustomUI();
+      renderAll();
+      if (state.fyraOpen) paintCustomThemes();
+      if (!(opts && opts.silent)) toast('커스텀 프레임 "' + spec.name + '"을 적용했습니다');
+      return true;
+    });
+  }
+
+  function adoptCustom(spec, opts) {
+    return saveCustomSpec(spec).then(function (stored) {
+      state.customList = [stored].concat(state.customList.filter(function (item) { return item.id !== stored.id; }));
+      buildCustomStrip();
+      buildCustomGrid();
+      return applyCustom(stored, opts);
+    });
+  }
+
+  function importCustomText(text, opts) {
+    var eng = sf();
+    if (!eng) { toast('커스텀 프레임 엔진을 불러오지 못했습니다', 'error'); return null; }
+    var spec = eng.decode(String(text || ''));
+    if (!spec) {
+      toast('프레임을 읽지 못했습니다 — .shutterframe.json 파일이나 #frame= 링크인지 확인해 주세요', 'error');
+      return null;
+    }
+    return adoptCustom(spec, opts);
+  }
+
+  function importCustomFile(file) {
+    var reader = new FileReader();
+    reader.onload = function () { importCustomText(String(reader.result)); };
+    reader.onerror = function () { toast('파일을 읽지 못했습니다', 'error'); };
+    reader.readAsText(file);
+  }
+
+  function deleteCustomSpec(id) {
+    var store = customStore();
+    var wasActive = !!(state.customSpec && state.customSpec.id === id);
+    state.customList = state.customList.filter(function (item) { return item.id !== id; });
+    if (wasActive) { state.customSpec = null; setStyle('fyra04'); }
+    buildCustomStrip();
+    buildCustomGrid();
+    if (store) store.remove(id);
+    toast('커스텀 프레임을 삭제했습니다');
+  }
+
+  function syncCustomUI() {
+    if (!el.strip) return;
+    $$('.frame-card--custom', el.strip).forEach(function (card) {
+      card.setAttribute('aria-checked',
+        String(!!(state.customSpec && card.dataset.customId === state.customSpec.id)));
+    });
+    buildCustomGrid();
+  }
+
+  /* — the 4-cut window's custom section — */
+  function buildCustomSection() {
+    if (customPanelBuilt || !el.fyraModal) return;
+    var anchor = $('#fyraGrid', el.fyraModal);
+    if (!anchor || !anchor.parentNode) return;
+    var sec = document.createElement('section');
+    sec.className = 'custom-section';
+    sec.id = 'customSection';
+    sec.innerHTML =
+      '<div class="custom-head">' +
+        '<div><p class="sheet-kicker">CUSTOM 4-CUT · .SHUTTERFRAME.JSON</p>' +
+        '<h3>커스텀 프레임</h3></div>' +
+        '<a class="custom-make" href="https://hyangdan2.github.io/PKPilot0015/" target="_blank" rel="noreferrer">' +
+          'Mynda Ljósa로 새 프레임 만들기 ↗</a>' +
+      '</div>' +
+      '<div class="custom-grid" id="customGrid"></div>' +
+      '<div class="custom-actions">' +
+        '<button type="button" class="custom-btn" id="customUpload">+ 커스텀 프레임 (.shutterframe.json)</button>' +
+        '<button type="button" class="custom-btn ghost" id="customPasteToggle">링크 / JSON 붙여넣기</button>' +
+      '</div>' +
+      '<div class="custom-paste" id="customPaste" hidden>' +
+        '<textarea id="customPasteText" rows="3" placeholder="https://hyangdan2.github.io/PKPilot0003/#frame=… 또는 .shutterframe.json 내용"></textarea>' +
+        '<button type="button" class="custom-btn" id="customPasteGo">불러오기</button>' +
+      '</div>';
+    anchor.parentNode.insertBefore(sec, anchor.nextSibling);
+
+    var fileInput = document.createElement('input');
+    fileInput.type = 'file';
+    fileInput.accept = '.json,application/json,*/*';
+    fileInput.hidden = true;
+    sec.appendChild(fileInput);
+
+    $('#customUpload', sec).addEventListener('click', function () { fileInput.click(); });
+    fileInput.addEventListener('change', function () {
+      var file = fileInput.files && fileInput.files[0];
+      if (file) importCustomFile(file);
+      fileInput.value = '';
+    });
+    $('#customPasteToggle', sec).addEventListener('click', function () {
+      var box = $('#customPaste', sec);
+      box.hidden = !box.hidden;
+      if (!box.hidden) $('#customPasteText', sec).focus();
+    });
+    $('#customPasteGo', sec).addEventListener('click', function () {
+      var field = $('#customPasteText', sec);
+      var text = field.value;
+      if (!text || !text.trim()) return;
+      if (importCustomText(text)) { field.value = ''; $('#customPaste', sec).hidden = true; }
+    });
+    customPanelBuilt = true;
+    buildCustomGrid();
+  }
+
+  function buildCustomGrid() {
+    if (!el.fyraModal) return;
+    var grid = $('#customGrid', el.fyraModal);
+    if (!grid) return;
+    grid.textContent = '';
+    state.customList.forEach(function (spec) {
+      var card = document.createElement('div');
+      card.className = 'custom-card' + (state.customSpec && state.customSpec.id === spec.id ? ' is-on' : '');
+      card.dataset.customId = spec.id;
+      card.innerHTML =
+        '<button type="button" class="custom-open">' +
+          '<span class="custom-thumb"><canvas aria-hidden="true"></canvas></span>' +
+          '<span class="custom-name">' + escapeHtml(spec.name) + '</span>' +
+          '<span class="custom-meta">' + spec.canvas.width + '×' + spec.canvas.height + ' · 4컷</span>' +
+        '</button>' +
+        '<button type="button" class="custom-del" aria-label="' + escapeHtml(spec.name) + ' 삭제" title="보관함에서 삭제">✕</button>';
+      $('.custom-open', card).addEventListener('click', function () { applyCustom(spec); });
+      $('.custom-del', card).addEventListener('click', function () { deleteCustomSpec(spec.id); });
+      grid.appendChild(card);
+      paintCustomCard($('canvas', card), spec);
+    });
+    if (!state.customList.length) {
+      var empty = document.createElement('p');
+      empty.className = 'custom-empty';
+      empty.textContent = '아직 커스텀 프레임이 없습니다. Mynda Ljósa에서 만들거나 파일·링크로 불러오세요.';
+      grid.appendChild(empty);
+    }
+  }
+
+  function paintCustomCard(cv, spec) {
+    var eng = sf();
+    if (!cv || !eng || !spec) return;
+    var host = cv.parentNode;
+    var box = host ? host.getBoundingClientRect() : null;
+    var dpr = Math.min(window.devicePixelRatio || 1, 2);
+    var cw = Math.max(24, Math.round((box && box.width) || 120));
+    var scale = cw / spec.canvas.width;
+    var layout = eng.layout(spec, { scale: scale, slots: slotSources(false), fields: customFields() });
+    var ow = Math.max(1, Math.round(layout.W));
+    var oh = Math.max(1, Math.round(layout.H));
+    if (cv.width !== Math.round(ow * dpr) || cv.height !== Math.round(oh * dpr)) {
+      cv.width = Math.round(ow * dpr);
+      cv.height = Math.round(oh * dpr);
+    }
+    var ctx = cv.getContext('2d');
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, ow, oh);
+    try { eng.paint(ctx, layout); } catch (e) { /* a broken frame must not break the window */ }
+  }
+
+  function paintCustomThemes() {
+    if (!el.fyraModal) return;
+    var grid = $('#customGrid', el.fyraModal);
+    if (!grid) return;
+    $$('.custom-card', grid).forEach(function (card) {
+      var spec = state.customList.filter(function (item) { return item.id === card.dataset.customId; })[0];
+      if (spec) paintCustomCard($('canvas', card), spec);
+    });
+  }
+
+  /* — the frame strip's custom cards — */
+  function buildCustomStrip() {
+    if (!el.strip) return;
+    $$('.frame-card--custom', el.strip).forEach(function (node) { node.parentNode.removeChild(node); });
+    customCards = [];
+    state.customList.forEach(function (spec) {
+      var b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'frame-card frame-card--custom';
+      b.dataset.customId = spec.id;
+      b.setAttribute('role', 'radio');
+      b.setAttribute('aria-checked', String(!!(state.customSpec && state.customSpec.id === spec.id)));
+      b.setAttribute('aria-label', spec.name + ' — 커스텀 4컷 프레임');
+      b.innerHTML =
+        '<span class="frame-thumb"><canvas aria-hidden="true"></canvas></span>' +
+        '<span class="frame-foot">' +
+          '<span class="frame-name">' + escapeHtml(spec.name) + '</span>' +
+          '<span class="frame-badge">CUSTOM 4컷</span>' +
+        '</span>';
+      b.addEventListener('click', function () { applyCustom(spec); });
+      el.strip.appendChild(b);
+      customCards.push({ spec: spec, canvas: $('canvas', b) });
+    });
+    var add = document.createElement('button');
+    add.type = 'button';
+    add.className = 'frame-card frame-card--custom frame-card--add';
+    add.setAttribute('aria-label', '커스텀 프레임 불러오기');
+    add.innerHTML =
+      '<span class="frame-thumb"><span class="custom-add-mark" aria-hidden="true">+</span></span>' +
+      '<span class="frame-foot">' +
+        '<span class="frame-name">커스텀 프레임</span>' +
+        '<span class="frame-badge">.SHUTTERFRAME.JSON</span>' +
+      '</span>';
+    add.addEventListener('click', function () { openFyraModal(); });
+    el.strip.appendChild(add);
+    if (state.customList.length || customPanelBuilt) scheduleStrip();
+  }
+
+  function paintCustomStrip() {
+    customCards.forEach(function (item) { paintCustomCard(item.canvas, item.spec); });
+  }
+
+  function bootCustom() {
+    buildCustomSection();
+    loadCustomShelf().then(function () {
+      buildCustomStrip();
+      buildCustomGrid();
+      var eng = sf();
+      if (!eng) return;
+      var incoming = eng.fromUrl(window.location.href);
+      if (!incoming) return;
+      adoptCustom(incoming).then(function () {
+        try {
+          history.replaceState(null, '', location.pathname + location.search.replace(/[?&]frame=[^&]*/, ''));
+        } catch (e) { /* a file:// page may refuse the rewrite */ }
+      });
+    });
+  }
+
   /* ── layout / render ──────────────────────────────────────────────────── */
   /* One layout for the live canvas, the export and a batch job. The multi-cut
      plates read the slots (full bitmaps for an export, previews on screen) and
      their own theme; everything else keeps the single-photo geometry. */
   function layoutFor(img, w, h, styleId, opts) {
     var id = styleId || state.style;
+    if (state.customSpec) {
+      var custom = customLayout(!!(opts && opts.full));
+      if (custom) return custom;
+    }
     var multi = PL.isMulti(id);
     return PL.layout({ w: w, h: h, img: img }, {
       style: id,
@@ -2116,7 +2448,7 @@
       ctx.save();
       ctx.translate(x, y);
       ctx.scale(s, s);
-      PL.paint(ctx, L);
+      paintPlate(ctx, L);
       ctx.restore();
 
       el.zoomLabel.textContent = state.zoom === 1 ? '맞춤' : '×' + state.zoom.toFixed(1);
@@ -2155,6 +2487,7 @@
       el.strip.appendChild(b);
       stripCanvases.push($('canvas', b));
     });
+    buildCustomStrip();
   }
 
   /* Both card rows — the horizontal strip in the studio and the landing's
@@ -2199,12 +2532,12 @@
         PL.helpers.roundRect(ctx, 0, 0, L.W, L.H, L.radius);
         ctx.fill();
       }
-      PL.paint(ctx, L);
+      paintPlate(ctx, L);
       ctx.restore();
     });
   }
 
-  function paintStrip() { paintCards(stripCanvases); }
+  function paintStrip() { paintCards(stripCanvases); paintCustomStrip(); }
 
   function scheduleStrip() {
     if (stripTimer) clearTimeout(stripTimer);
@@ -2236,8 +2569,10 @@
   }
 
   function updateReadout(L) {
-    var label = PL.STYLES[state.style].label;
-    if (state.style === 'fyra04') label += ' · ' + PL.fyraTheme(state.fyraTheme).label;
+    var label = state.customSpec
+      ? state.customSpec.name
+      : PL.STYLES[state.style].label;
+    if (!state.customSpec && state.style === 'fyra04') label += ' · ' + PL.fyraTheme(state.fyraTheme).label;
     el.exportStyle.textContent = label;
     if (!L) {
       el.exportSize.textContent = '—';
@@ -2608,6 +2943,7 @@
 
   function setStyle(style, resetGeo) {
     if (!PL.STYLES[style]) return;
+    state.customSpec = null;
     state.style = style;
     if (resetGeo !== false) {
       state.geo = PL.defaults(style);
@@ -3338,6 +3674,7 @@
     syncWsUI();
     syncSlotUI();
     bind();
+    bootCustom();
     /* The landing is the front door; #editor is the shortcut a bookmark keeps. */
     var start = /(^|#)editor$/.test(String(location.hash || '')) ? 'editor' : 'home';
     setView(start);
@@ -3433,6 +3770,14 @@
     openExportCard: function (p) { openExportCard(p || prepared); },
     layoutFor: layoutFor,
     currentLayout: currentLayout,
+    /* custom .shutterframe.json frames */
+    importCustomText: importCustomText,
+    importCustomFile: importCustomFile,
+    applyCustom: applyCustom,
+    deleteCustom: deleteCustomSpec,
+    activeCustom: function () { return state.customSpec; },
+    customFrames: function () { return state.customList; },
+    customLayout: customLayout,
     isReady: true
   };
 

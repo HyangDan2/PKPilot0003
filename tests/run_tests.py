@@ -29,6 +29,7 @@ import threading
 import http.server
 import socketserver
 from html.parser import HTMLParser
+from urllib.parse import quote
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 VERBOSE = "-v" in sys.argv
@@ -260,7 +261,10 @@ def static_tests():
 
     portal = re.search(r'<div class="portal-menu-dropdown".*?</div>\s*</div>', html, re.S).group(0)
     links = re.findall(r'<a class="portal-item"[^>]*href="([^"]+)"', portal)
-    check("portal menu has exactly two links", len(links) == 2, str(links))
+    # Four links since 2026-11-21: the two portals plus the two sibling apps.
+    check("portal menu has exactly four links", len(links) == 4, str(links))
+    check("portal links the two sibling apps",
+          any("PKPilot0011" in l for l in links) and any("PKPilot0015" in l for l in links), str(links))
     check("portal keeps Web-HQ + ApplicationHub",
           any("hyangdan2.github.io/" == l.rstrip("/").split("//")[-1] + "/" or l == "https://hyangdan2.github.io/"
               for l in links) and any("ApplicationHub" in l for l in links), str(links))
@@ -1266,6 +1270,34 @@ def overlap_of(page, sel_a, sel_b):
     }""", [sel_a, sel_b])
 
 
+
+def custom_static_tests():
+    """The shared .shutterframe.json engine is wired into the plate (both trees)."""
+    print("\n[custom] shared frame engine · .shutterframe.json loader")
+    for rel in ("js/shutterframe.js", "js/vendor/lz-string.min.js",
+                "beta/js/shutterframe.js", "beta/js/vendor/lz-string.min.js"):
+        check(f"custom: {rel} ships", os.path.exists(os.path.join(ROOT, rel)))
+    for rel in ("index.html", "beta/index.html"):
+        html = read(rel)
+        check(f"custom: {rel} loads lz-string before the engine",
+              html.index("lz-string.min.js") < html.index("shutterframe.js"))
+        check(f"custom: {rel} loads the engine before the app",
+              html.index("js/shutterframe.js") < html.index("app.js"))
+    engine = read("js/shutterframe.js")
+    for token in ("shutterframe/v1", "compressToEncodedURIComponent", "hd2_custom_frames_v1"):
+        check(f"custom: engine carries {token}", token in engine)
+    root_js = read("app.js")
+    beta_js = read("beta/app.js")
+    for name, src in (("root", root_js), ("beta", beta_js)):
+        check(f"custom: {name} imports .shutterframe.json",
+              "importCustomText" in src and "fromUrl(window.location.href)" in src)
+        check(f"custom: {name} paints custom plates through the shared engine",
+              "eng.paint(ctx, L)" in src and "paintCustomStrip" in src)
+    for rel in ("index.html", "beta/index.html"):
+        html = read(rel)
+        check(f"custom: {rel} ⋮ menu links Nordlys", "hyangdan2.github.io/PKPilot0011/" in html)
+        check(f"custom: {rel} ⋮ menu links Mynda Ljósa", "hyangdan2.github.io/PKPilot0015/" in html)
+
 def browser_tests(port):
     names = [f"browser: {x}" for x in ("desktop", "frames", "sheets", "export", "mobile", "small",
                                        "share", "inapp")]
@@ -1452,6 +1484,80 @@ def browser_tests(port):
         check("landing: no console errors on the way",
               not lerrors, str(lerrors[:3]))
         lctx.close()
+
+        # ── custom .shutterframe.json frames ────────────────────────────────
+        # The shared engine (js/shutterframe.js) is one script the three apps
+        # load, so this proves the plate actually prints a frame Mynda Ljósa
+        # could have designed, not just that a button exists.
+        print("\n[browser] custom .shutterframe.json frame → 4-cut plate")
+        kerrors = []
+        kctx = browser.new_context(viewport={"width": 1440, "height": 900})
+        kpage = kctx.new_page()
+        kpage.on("pageerror", lambda e: kerrors.append(str(e)))
+        kpage.on("console", lambda m: kerrors.append(m.text) if m.type == "error" else None)
+        kpage.goto(studio, wait_until="networkidle")
+        kpage.wait_for_timeout(700)
+        kpage.evaluate("() => window.SPApp.loadSampleAt(0)")
+        kpage.wait_for_timeout(700)
+
+        frame_spec = {
+            "schema": "shutterframe/v1",
+            "id": "frame-test-0001",
+            "name": "Test Strip",
+            "updatedAt": "2026-11-21T00:00:00.000Z",
+            "canvas": {"width": 600, "height": 1800, "background": "#f4f1ea", "light": True},
+            "perforation": {"enabled": False, "style": "side", "color": "#e9e4d8"},
+            "cells": [
+                {"x": 36, "y": 96, "w": 528, "h": 380, "radius": 4},
+                {"x": 36, "y": 496, "w": 528, "h": 380, "radius": 4},
+                {"x": 36, "y": 896, "w": 528, "h": 380, "radius": 4},
+                {"x": 36, "y": 1296, "w": 528, "h": 380, "radius": 4},
+            ],
+            "texts": [{"id": "t1", "text": "{{date}}", "x": 300, "y": 1740, "size": 20,
+                       "family": "sans", "weight": 500, "align": "center", "color": "#6b635a"}],
+            "emblem": {"enabled": True, "x": 300, "y": 1700, "maxW": 220, "maxH": 40,
+                       "align": "center", "mode": "auto"},
+        }
+        kpage.evaluate("(spec) => window.SPApp.importCustomText(JSON.stringify(spec))", frame_spec)
+        kpage.wait_for_timeout(900)
+        check("custom: the imported frame becomes the active plate",
+              (kpage.evaluate("() => (window.SPApp.activeCustom() || {}).name") or "") == "Test Strip")
+        check("custom: it switches to the 4-cut style",
+              kpage.evaluate("() => window.SPApp.state.style") == "fyra04")
+        check("custom: the plate is laid out at the frame's design size",
+              kpage.evaluate("() => { const L = window.SPApp.currentLayout(); return !!L && L.W === 600 && L.H === 1800; }"))
+        check("custom: the frame strip carries the custom card",
+              kpage.locator(".frame-card--custom[data-custom-id='frame-test-0001']").count() >= 1)
+        kpage.evaluate("() => window.SPApp.openFyraModal()")
+        kpage.wait_for_timeout(400)
+        check("custom: the 4-cut window carries the custom section",
+              kpage.is_visible("#customSection"))
+        check("custom: the window lists the frame with a delete door",
+              kpage.locator("#customGrid .custom-card[data-custom-id='frame-test-0001']").count() == 1)
+        check("custom: the window links to Mynda Ljósa",
+              "PKPilot0015" in (kpage.get_attribute("#customSection .custom-make", "href") or ""))
+        kpage.evaluate("() => window.SPApp.closeFyraModal()")
+        check("custom: no console errors on the custom path", not kerrors, str(kerrors[:3]))
+        kctx.close()
+
+        # a #frame= deep link: it imports, applies and opens on the plate
+        print("\n[browser] ?frame= deep link imports the frame")
+        dctx = browser.new_context(viewport={"width": 1440, "height": 900})
+        dpage = dctx.new_page()
+        derrors = []
+        dpage.on("pageerror", lambda e: derrors.append(str(e)))
+        deep = dict(frame_spec)
+        deep = json.loads(json.dumps(frame_spec))
+        deep["id"] = "frame-test-0002"
+        deep["name"] = "Deep Link Strip"
+        dpage.goto(studio.split("#")[0] + "?frame=" + quote(json.dumps(deep)) + "#editor", wait_until="networkidle")
+        dpage.wait_for_timeout(1200)
+        check("deeplink: the frame arrives from the URL",
+              (dpage.evaluate("() => (window.SPApp.activeCustom() || {}).name") or "") == "Deep Link Strip")
+        check("deeplink: it is already on the plate",
+              dpage.evaluate("() => { const L = window.SPApp.currentLayout(); return !!L && !!L.custom; }"))
+        check("deeplink: no console errors", not derrors, str(derrors[:3]))
+        dctx.close()
 
         # an empty plate: a frame card loads sample-01 and opens on that frame
         lctx2 = browser.new_context(viewport={"width": 1440, "height": 900})
@@ -4273,6 +4379,7 @@ def main() -> int:
     print("PKPilot0003 · Shutterplate test suite")
     print(f"root: {ROOT}")
     static_tests()
+    custom_static_tests()
 
     httpd, port = serve()
     try:

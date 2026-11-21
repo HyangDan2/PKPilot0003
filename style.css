@@ -2223,3 +2223,44 @@ body[data-view="editor"]:has(#slotToggle:not([hidden])) .hd2-theme-toggle {
 @media (max-width: 379px) {
   .brand em { display: none; }
 }
+
+/* ── custom .shutterframe.json frames ───────────────────────────────────── */
+.custom-section { margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--line-soft); }
+.custom-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.custom-head h3 { margin: 2px 0 0; font-size: 15px; }
+.custom-make { font-size: 12px; color: var(--accent); text-decoration: none; font-weight: 600; }
+.custom-make:hover { text-decoration: underline; }
+.custom-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; margin-top: 10px; }
+.custom-card { position: relative; display: flex; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; background: var(--ink-3); }
+.custom-card.is-on { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-glow); }
+.custom-open {
+  flex: 1; display: flex; flex-direction: column; gap: 2px; padding: 7px; border: 0;
+  background: transparent; color: inherit; text-align: left; cursor: pointer;
+}
+.custom-thumb { display: block; border-radius: 7px; background: var(--line-soft); padding: 4px; }
+.custom-thumb canvas { display: block; width: 100%; height: auto; border-radius: 4px; }
+.custom-name { font-size: 11.5px; font-weight: 700; }
+.custom-meta { font-size: 9.5px; letter-spacing: 0.06em; color: var(--muted); }
+.custom-del {
+  position: absolute; top: 3px; right: 3px; width: 20px; height: 20px; border-radius: 999px;
+  border: 1px solid var(--line); background: var(--ink-2); color: var(--muted);
+  font-size: 10px; line-height: 1; cursor: pointer;
+}
+.custom-del:hover { color: #c2405a; border-color: #c2405a; }
+.custom-actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+.custom-btn {
+  padding: 8px 12px; border-radius: 9px; border: 1px solid var(--accent);
+  background: var(--accent); color: #fff; font-size: 12px; font-weight: 700; cursor: pointer;
+}
+.custom-btn.ghost { background: transparent; color: var(--accent); }
+.custom-paste { display: flex; gap: 8px; align-items: flex-end; margin-top: 8px; }
+.custom-paste textarea {
+  flex: 1; min-height: 64px; padding: 8px 10px; border-radius: 9px; resize: vertical;
+  border: 1px solid var(--line-strong); background: var(--ink-2); color: var(--text, #3F3950);
+  font-family: var(--mono, ui-monospace); font-size: 11px;
+}
+.custom-empty { grid-column: 1 / -1; font-size: 12px; color: var(--muted); margin: 4px 0 0; }
+.frame-card--custom .custom-add-mark {
+  display: grid; place-items: center; min-height: 88px; font-size: 26px; font-weight: 300; color: var(--accent);
+}
+.frame-card--custom .frame-badge { color: var(--accent); }
