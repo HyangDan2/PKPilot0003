@@ -1472,6 +1472,11 @@ input[type="range"]::-moz-range-thumb {
 .ins-dock,
 .ws-strip { display: none; }
 
+/* the landing copy follows the layout: a phone has no folder open, so that
+   card only promises what a phone can do */
+.pc-copy { display: none; }
+.mob-copy { display: inline; }
+
 /* 모바일 시트의 내보내기 조작 묶음(포맷·품질)은 원래 간격 그대로 */
 .export-pane-controls { display: flex; flex-direction: column; gap: 12px; }
 
@@ -1624,6 +1629,10 @@ input[type="range"]::-moz-range-thumb {
   .pc-open .hbtn { padding: 0; width: 44px; }
   #headerOpenBtn { display: none; }
   .pc-only { display: inline-flex; }
+  /* a ⋮ item is a grid row (icon · text · badge), not an inline chip */
+  .portal-item.pc-only { display: grid; }
+  .pc-copy { display: inline; }
+  .mob-copy { display: none; }
   .empty-row--pc { display: flex; }
   .empty-row--pc .btn { min-height: 40px; font-size: 12px; padding: 0 13px; }
 
