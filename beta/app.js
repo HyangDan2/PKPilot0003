@@ -2074,8 +2074,9 @@
       datetime: f.datetime || '',
       caption: f.caption || '',
       shutter: f.shutter || '',
-      iso: f.iso || '',
-      aperture: f.aperture || '',
+      /* the EXIF sheet already says "ISO 100" and the f-number symbol */
+      iso: String(f.iso || '').replace(/^iso\s*/i, ''),
+      aperture: String(f.aperture || '').replace(/^(ƒ|f)\/?/i, ''),
       title: spec ? spec.name : ''
     };
   }
