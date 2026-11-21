@@ -2861,7 +2861,8 @@
   /* ── UI sync ──────────────────────────────────────────────────────────── */
   function syncStyleUI() {
     $$('.frame-card', el.strip).forEach(function (c) {
-      c.setAttribute('aria-checked', c.dataset.style === state.style ? 'true' : 'false');
+      if (c.dataset.customId) return;   // custom cards carry their own check
+      c.setAttribute('aria-checked', !state.customSpec && c.dataset.style === state.style ? 'true' : 'false');
     });
   }
 
