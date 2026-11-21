@@ -1677,6 +1677,9 @@
   }
 
   function openFolder() {
+    /* a phone has no workspace to put a folder into: the phone's chooser takes a
+       single photo, and the folder doors stay out of its layout too */
+    if (!isPC()) return;
     var recursive = !!(el.recursiveToggle && el.recursiveToggle.checked);
     if (typeof window.showDirectoryPicker === 'function') {
       var pick = null;

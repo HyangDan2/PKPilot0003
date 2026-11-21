@@ -493,6 +493,21 @@ def static_tests():
           'id="openFolderBtn"' in portal and 'role="menuitem"' in portal
           and 'id="menuRecursiveBtn"' in portal
           and "폴더 열기" in portal and "하위 폴더 포함" in portal)
+    # …and both are wide-layout doors: a phone has no workspace to put a folder in
+    check("folder open and 하위 폴더 포함 are PC-only menu rows",
+          re.search(r'class="portal-item pc-only" id="openFolderBtn"', portal) is not None
+          and re.search(r'class="portal-item pc-only" id="menuRecursiveBtn"', portal) is not None)
+    check("the landing's 폴더 열기 button is PC-only",
+          re.search(r'class="btn btn-quiet pc-only" id="homeOpenFolderBtn"', html) is not None)
+    check("a PC-only ⋮ row goes back to its grid on the wide layout",
+          re.search(r"\.portal-item\.pc-only\s*\{\s*display:\s*grid;\s*\}", sheet_css) is not None)
+    check("the landing card promises a folder only on the wide layout",
+          'class="pc-copy"' in html and 'class="mob-copy"' in html
+          and re.search(r"\.pc-copy \{ display: none; \}", sheet_css) is not None
+          and re.search(r"@media \(min-width: 1024px\)[\s\S]*?\.pc-copy \{ display: inline; \}", sheet_css) is not None)
+    check("folder open is a wide-layout call in the script too",
+          re.search(r"function openFolder\(\) \{\s*\n\s*/\*[\s\S]*?\*/\s*\n\s*if \(!isPC\(\)\) return;",
+                    read("app.js")) is not None)
     check("the subfolder option is a menu checkbox with a state badge",
           'id="menuRecursiveState"' in portal
           and re.search(r'id="menuRecursiveBtn"[^>]*role="menuitemcheckbox"[^>]*aria-checked="false"', portal) is not None)
@@ -1554,6 +1569,12 @@ def browser_tests(port):
         dpage.wait_for_timeout(1200)
         check("deeplink: the frame arrives from the URL",
               (dpage.evaluate("() => (window.SPApp.activeCustom() || {}).name") or "") == "Deep Link Strip")
+        # an empty plate has no layout yet (currentLayout() waits for a photo), so
+        # the frame proves itself on the plate once a photo lands on it
+        dpage.click("#emptySampleBtn")
+        dpage.wait_for_function("() => window.SPApp.state.photo && window.SPApp.state.photo.w > 0",
+                                timeout=20000)
+        dpage.wait_for_timeout(500)
         check("deeplink: it is already on the plate",
               dpage.evaluate("() => { const L = window.SPApp.currentLayout(); return !!L && !!L.custom; }"))
         check("deeplink: no console errors", not derrors, str(derrors[:3]))
@@ -1648,11 +1669,18 @@ def browser_tests(port):
 
         # the strip previews all thirteen frames before a photo exists
         cards = page.locator(".frame-card")
-        check("strip: thirteen frame cards", cards.count() == 13, str(cards.count()))
+        # the strip closes with the custom-frame slot (a card that paints no
+        # plate of its own): thirteen signatures, then the add door
+        check("strip: thirteen signature frame cards + the custom slot",
+              page.locator(".frame-card:not(.frame-card--custom)").count() == 13
+              and page.locator(".frame-card--add").count() == 1,
+              f"sig={page.locator('.frame-card:not(.frame-card--custom)').count()} "
+              f"add={page.locator('.frame-card--add').count()}")
         empties = page.evaluate("""() => {
           const out = [];
           document.querySelectorAll('.frame-card').forEach(card => {
             const cv = card.querySelector('canvas');
+            if (!cv) return;          // the custom add slot paints no preview
             const d = cv.getContext('2d').getImageData(0, 0, cv.width, cv.height).data;
             let min = 255, max = 0;
             for (let i = 0; i < d.length; i += 4 * 37) { const v = d[i]+d[i+1]+d[i+2]; min = Math.min(min,v); max = Math.max(max,v); }
@@ -3759,6 +3787,62 @@ def browser_tests(port):
         check("fallback: no page errors", not nerr, str(nerr[:3]))
         nctx.close()
 
+        # ── the 1024 boundary: the folder doors open exactly there ──────────
+        print("\n[browser] folder open is a wide-layout door (900 / 1023 / 1024)")
+        for bwidth, wide in ((900, False), (1023, False), (1024, True)):
+            bctx = browser.new_context(viewport={"width": bwidth, "height": 900})
+            bctx.add_init_script("window.showDirectoryPicker = undefined;")
+            bpage = bctx.new_page()
+            bpage.set_default_timeout(30000)
+            berr = []
+            bpage.on("pageerror", lambda e: berr.append(str(e)))
+            bpage.goto(base, wait_until="networkidle")
+            bpage.wait_for_timeout(420)
+            seen = bpage.evaluate("""() => {
+              const vis = el => { if (!el) return false; const r = el.getBoundingClientRect();
+                return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+              const card = document.querySelector('#homeDrop .lc-head p');
+              return {home: vis(document.querySelector('#homeOpenFolderBtn')),
+                      copy: card ? card.innerText.replace(/\\s+/g, ' ').trim() : ''};
+            }""")
+            check(f"{bwidth}px: the landing {'offers' if wide else 'drops'} 폴더 열기",
+                  seen["home"] is wide, json.dumps(seen, ensure_ascii=False))
+            check(f"{bwidth}px: the landing card {'names' if wide else 'never names'} a folder",
+                  ("폴더" in seen["copy"]) is wide, json.dumps(seen, ensure_ascii=False))
+            bpage.evaluate("() => SPApp.openMenu()")
+            bpage.wait_for_timeout(220)
+            rows = bpage.evaluate("""() => {
+              const vis = el => { if (!el) return false; const r = el.getBoundingClientRect();
+                return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+              const f = document.querySelector('#openFolderBtn');
+              const rr = document.querySelector('#menuRecursiveBtn');
+              return {folder: vis(f), recursive: vis(rr), display: getComputedStyle(f).display,
+                      w: +f.getBoundingClientRect().width.toFixed(1),
+                      badge: vis(f.querySelector('.portal-badge')), ic: vis(f.querySelector('.portal-ic')),
+                      head: getComputedStyle(f.previousElementSibling || f).display};
+            }""")
+            check(f"{bwidth}px: ⋮ {'carries' if wide else 'hides'} 폴더 열기 / 하위 폴더 포함",
+                  rows["folder"] is wide and rows["recursive"] is wide,
+                  json.dumps(rows, ensure_ascii=False))
+            if wide:
+                check("1024px: the ⋮ folder row is still a grid row (icon · text · badge)",
+                      rows["display"] == "grid" and rows["w"] >= 240
+                      and rows["badge"] and rows["ic"], json.dumps(rows))
+                with bpage.expect_file_chooser(timeout=8000) as bchooser:
+                    bpage.click("#openFolderBtn")
+                check("1024px: 폴더 열기 still raises the folder chooser",
+                      bchooser.value is not None)
+                bpage.wait_for_timeout(200)
+                check("1024px: the menu folds once the folder door is used",
+                      bpage.evaluate("() => document.querySelector('#portalMenuDropdown').hidden"))
+            else:
+                check(f"{bwidth}px: the folder doors cannot be reached at all",
+                      bpage.evaluate("""() => ['#openFolderBtn', '#menuRecursiveBtn']
+                        .every(s => { const r = document.querySelector(s).getBoundingClientRect();
+                          return r.width === 0 && r.height === 0; })"""))
+            check(f"{bwidth}px: no page errors", not berr, str(berr[:3]))
+            bctx.close()
+
         # ── tablet 900: the sheet path below the 1024 breakpoint ───────────
         print("\n[browser] tablet 900: toolbar + sheet kept below 1024")
         tctx = browser.new_context(viewport={"width": 900, "height": 800})
@@ -4142,6 +4226,13 @@ def browser_tests(port):
           for (const b of document.querySelectorAll('button, a.portal-item, .dropzone, .frame-card')) {
             const r = b.getBoundingClientRect();
             if (r.width === 0 && r.height === 0) continue;
+            /* the phone screen never scrolls: a control parked outside the
+               viewport (a closed window, a sheet below the fold) is not one */
+            if (r.bottom <= 0 || r.top >= window.innerHeight
+                || r.right <= 0 || r.left >= window.innerWidth) continue;
+            /* what the page hides from assistive tech (a closed window, a parked
+               sheet) is not on offer yet: its buttons are checked when it opens */
+            if (b.closest('[aria-hidden="true"]')) continue;
             if (r.height < 44 || r.width < 44) bad.push((b.id || b.className || b.textContent.trim().slice(0,12)));
           }
           return bad;
@@ -4263,6 +4354,50 @@ def browser_tests(port):
               and mlanding["opacity"] == "1", str(mlanding))
         check("mobile: the landing header stays one row too",
               not mlanding["headerWrap"], str(mlanding))
+
+        # the folder doors are the wide layout's: on a phone the card offers the
+        # plain chooser and the ⋮ WORKSPACE group keeps only its way home
+        mfolder = mpage.evaluate("""() => {
+          const vis = el => { if (!el) return false; const r = el.getBoundingClientRect();
+            return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+          const card = document.querySelector('#homeDrop .lc-head p');
+          const files = document.querySelector('#homeOpenFilesBtn').getBoundingClientRect();
+          return {homeFolder: vis(document.querySelector('#homeOpenFolderBtn')),
+                  files: {w: +files.width.toFixed(1), h: +files.height.toFixed(1)},
+                  copy: card ? {pc: getComputedStyle(card.querySelector('.pc-copy')).display,
+                                mob: getComputedStyle(card.querySelector('.mob-copy')).display,
+                                text: card.innerText.replace(/\\s+/g, ' ').trim()} : null,
+                  overflow: document.documentElement.scrollWidth - window.innerWidth};
+        }""")
+        check("mobile: the landing has no 폴더 열기 button", not mfolder["homeFolder"], json.dumps(mfolder, ensure_ascii=False))
+        check("mobile: 사진 선택 fills the card's action row at the 44px floor",
+              mfolder["files"]["h"] >= 44 and mfolder["files"]["w"] > 200
+              and mfolder["overflow"] <= 1, json.dumps(mfolder))
+        check("mobile: the landing copy promises photos, not a folder",
+              mfolder["copy"]["pc"] == "none" and mfolder["copy"]["mob"] == "inline"
+              and "폴더" not in mfolder["copy"]["text"],
+              json.dumps(mfolder["copy"], ensure_ascii=False))
+        mpage.evaluate("() => SPApp.openMenu()")
+        mpage.wait_for_timeout(220)
+        mmenu = mpage.evaluate("""() => {
+          const vis = el => { if (!el) return false; const r = el.getBoundingClientRect();
+            return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+          return {open: !document.querySelector('#portalMenuDropdown').hidden,
+                  folder: vis(document.querySelector('#openFolderBtn')),
+                  recursive: vis(document.querySelector('#menuRecursiveBtn')),
+                  home: vis(document.querySelector('#menuHomeBtn')),
+                  labels: [...document.querySelectorAll('#portalMenuDropdown .portal-item')]
+                            .filter(vis).map(i => i.innerText.replace(/\\s+/g, ' ').trim())};
+        }""")
+        check("mobile: ⋮ still opens and keeps its way home",
+              mmenu["open"] and mmenu["home"], json.dumps(mmenu, ensure_ascii=False))
+        check("mobile: ⋮ carries no 폴더 열기 / 하위 폴더 포함",
+              not mmenu["folder"] and not mmenu["recursive"]
+              and not [l for l in mmenu["labels"]
+                       if l.startswith("폴더 열기") or l.startswith("하위 폴더 포함")],
+              json.dumps(mmenu, ensure_ascii=False))
+        mpage.evaluate("() => SPApp.closeMenu(false)")
+        mpage.wait_for_timeout(150)
         mpage.evaluate("() => SPApp.setView('editor')")
         mpage.wait_for_timeout(240)
 

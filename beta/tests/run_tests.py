@@ -312,6 +312,20 @@ def static_tests():
     check("static: ⋮ WORKSPACE carries folder open + 하위 폴더 포함",
           'id="openFolderBtn"' in hdr and 'id="menuRecursiveBtn"' in hdr
           and 'role="menuitemcheckbox"' in hdr and 'id="menuRecursiveState"' in hdr)
+    # …and both are wide-layout doors here too: a phone has no workspace
+    check("static: folder open and 하위 폴더 포함 are PC-only menu rows",
+          re.search(r'class="portal-item pc-only" id="openFolderBtn"', hdr) is not None
+          and re.search(r'class="portal-item pc-only" id="menuRecursiveBtn"', hdr) is not None)
+    check("static: the landing's 폴더 열기 button is PC-only",
+          re.search(r'class="btn btn-quiet pc-only" id="homeOpenFolderBtn"', html) is not None)
+    check("static: a PC-only ⋮ row goes back to its grid on the wide layout",
+          re.search(r"\.portal-item\.pc-only\s*\{\s*display:\s*grid;\s*\}", css) is not None)
+    check("static: the landing card promises a folder only on the wide layout",
+          'class="pc-copy"' in html and 'class="mob-copy"' in html
+          and re.search(r"\.pc-copy \{ display: none; \}", css) is not None)
+    check("static: folder open is a wide-layout call in the script too",
+          re.search(r"function openFolder\(\) \{\s*\n\s*/\*[\s\S]*?\*/\s*\n\s*if \(!isPC\(\)\) return;",
+                    open(os.path.join(BETA, "app.js"), encoding="utf-8").read()) is not None)
 
     # production is a different build and must stay that way
     prod_html = open(os.path.join(os.path.dirname(BETA), "index.html"), encoding="utf-8").read()
@@ -500,6 +514,11 @@ def browser_tests(port):
         page.wait_for_timeout(200)
         check("browser: ⋮ offers 폴더 열기 and 하위 폴더 포함",
               page.is_visible("#openFolderBtn") and page.is_visible("#menuRecursiveBtn"))
+        check("browser: the wide ⋮ folder row is still a grid row",
+              page.evaluate("() => getComputedStyle(document.querySelector('#openFolderBtn')).display") == "grid")
+        check("browser: the wide landing keeps its 폴더 열기 button",
+              page.evaluate("""() => { const b = document.querySelector('#homeOpenFolderBtn');
+                  const r = b.getBoundingClientRect(); return r.width > 0 && r.height >= 44; }"""))
         page.click("#menuRecursiveBtn")
         page.wait_for_timeout(120)
         check("browser: 하위 폴더 포함 reads ON",
@@ -522,6 +541,40 @@ def browser_tests(port):
               mpage.evaluate("() => { const b = document.querySelector('#headerOpenBtn').getBoundingClientRect();"
                              " const pc = document.querySelector('#openFilesBtn').getBoundingClientRect();"
                              " return b.width >= 44 && pc.width === 0; }"))
+        # the folder doors are the wide layout's, on the beta too
+        mfolder = mpage.evaluate("""() => {
+          const vis = el => { if (!el) return false; const r = el.getBoundingClientRect();
+            return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+          const card = document.querySelector('#homeDrop .lc-head p');
+          return {homeFolder: vis(document.querySelector('#homeOpenFolderBtn')),
+                  filesH: document.querySelector('#homeOpenFilesBtn').getBoundingClientRect().height,
+                  copy: card ? {pc: getComputedStyle(card.querySelector('.pc-copy')).display,
+                                mob: getComputedStyle(card.querySelector('.mob-copy')).display,
+                                text: card.innerText.replace(/\\s+/g, ' ').trim()} : null,
+                  overflow: document.documentElement.scrollWidth - window.innerWidth};
+        }""")
+        check("browser: the phone's landing has no 폴더 열기 button",
+              not mfolder["homeFolder"] and mfolder["filesH"] >= 44 and mfolder["overflow"] <= 1,
+              json.dumps(mfolder, ensure_ascii=False))
+        check("browser: the phone's landing copy promises photos, not a folder",
+              mfolder["copy"]["pc"] == "none" and mfolder["copy"]["mob"] == "inline"
+              and "폴더" not in mfolder["copy"]["text"],
+              json.dumps(mfolder["copy"], ensure_ascii=False))
+        mpage.evaluate("() => SPApp.openMenu()")
+        mpage.wait_for_timeout(220)
+        mmenu = mpage.evaluate("""() => {
+          const vis = el => { if (!el) return false; const r = el.getBoundingClientRect();
+            return r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== 'hidden'; };
+          return {open: !document.querySelector('#portalMenuDropdown').hidden,
+                  folder: vis(document.querySelector('#openFolderBtn')),
+                  recursive: vis(document.querySelector('#menuRecursiveBtn')),
+                  home: vis(document.querySelector('#menuHomeBtn'))};
+        }""")
+        check("browser: the phone's ⋮ keeps its way home and hides both folder rows",
+              mmenu["open"] and mmenu["home"] and not mmenu["folder"] and not mmenu["recursive"],
+              json.dumps(mmenu, ensure_ascii=False))
+        mpage.evaluate("() => SPApp.closeMenu(false)")
+        mpage.wait_for_timeout(150)
         mctx.close()
 
         # ── frame library ──────────────────────────────────────────────────
@@ -530,22 +583,24 @@ def browser_tests(port):
         page.wait_for_timeout(1300)
         page.evaluate("() => window.SPApp.setView('editor')")
         page.wait_for_timeout(500)
-        tiles = page.evaluate("""() => [...document.querySelectorAll('#frameStrip .frame-card')]
+        # the custom-frame slot rides at the end of the strip; the signatures keep
+        # their order in front of it
+        tiles = page.evaluate("""() => [...document.querySelectorAll('#frameStrip .frame-card:not(.frame-card--custom)')]
             .map(c => c.dataset.style)""")
         check("browser: the strip lists the 13 frames in order",
               tiles == [f[0] for f in FRAMES], str(tiles))
         check("browser: the eleven single-cut tiles are plain",
-              page.evaluate("""() => [...document.querySelectorAll('#frameStrip .frame-card')]
+              page.evaluate("""() => [...document.querySelectorAll('#frameStrip .frame-card:not(.frame-card--custom)')]
                   .slice(0, 11).every(c => !c.classList.contains('frame-card--multi'))"""))
         check("browser: the two multi-cut tiles are marked",
-              page.evaluate("""() => [...document.querySelectorAll('#frameStrip .frame-card')]
+              page.evaluate("""() => [...document.querySelectorAll('#frameStrip .frame-card:not(.frame-card--custom)')]
                   .slice(11).every(c => c.classList.contains('frame-card--multi'))"""))
         check("browser: FYRA 04 carries the re-click hint",
               page.locator('.frame-card[data-style="fyra04"] .frame-reclick').count() == 1)
         check("browser: the re-click hint names the theme window",
               "테마" in page.inner_text('.frame-card[data-style="fyra04"] .frame-reclick'),
               page.inner_text('.frame-card[data-style="fyra04"] .frame-reclick'))
-        labels = page.evaluate("""() => [...document.querySelectorAll('#frameStrip .frame-name')]
+        labels = page.evaluate("""() => [...document.querySelectorAll('#frameStrip .frame-card:not(.frame-card--custom) .frame-name')]
             .map(n => n.textContent.trim())""")
         check("browser: the tile labels match the approved names",
               labels == [f[1] for f in FRAMES], str(labels))
