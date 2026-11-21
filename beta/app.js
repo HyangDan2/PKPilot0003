@@ -2361,7 +2361,9 @@
       if (!eng) return;
       var incoming = eng.fromUrl(window.location.href);
       if (!incoming) return;
-      adoptCustom(incoming).then(function () {
+      adoptCustom(incoming).then(function (ok) {
+        /* a shared link is an invitation to print: open the studio on it */
+        if (ok) setView('editor');
         try {
           history.replaceState(null, '', location.pathname + location.search.replace(/[?&]frame=[^&]*/, ''));
         } catch (e) { /* a file:// page may refuse the rewrite */ }
